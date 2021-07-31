@@ -1,9 +1,9 @@
+using System;
 using UnityEngine;
 using UnityEditor;
 using Bridge.Core.App.AR.Manager;
 using UnityEngine.XR.ARFoundation;
-using System.IO;
-using System;
+using Bridge.App.Serializations.Manager;
 
 namespace Bridge.Core.UnityEditor.AR.Manager
 {
@@ -21,7 +21,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         private static void OpenARManagerEditor()
         {
             window = GetWindow<ARContentEditorWindow>("AR Content Editor");
-            window.minSize = new Vector2(400, 600);
+            window.minSize = new Vector2(400, 350);
 
             window.Show();
         }
@@ -93,17 +93,17 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             InitializeLayoutStyles();
             InitializeContentData();
 
-            LoadSettingsData((loadedData, success) => 
-            {
-                if(success == false)
-                {
-                    UnityEngine.Debug.LogWarning("-->> Config data failed to load data from given path.");
-                }
+            //SerializationManager.LoadData<>((loadedData, success) => 
+            //{
+            //    if(success == false)
+            //    {
+            //        UnityEngine.Debug.LogWarning("-->> Config data failed to load data from given path.");
+            //    }
 
-                ARSceneRootEditor.SetPreviousEventCamSettings(loadedData);
+            //    ARSceneRootEditor.SetPreviousEventCamSettings(loadedData);
 
-                UnityEngine.Debug.Log($"-->> <color=green>AR Config Load Success</color> <color=white>Load config data with name :</color> <color=cyan>{loadedData.nameTag.ToString()}.</color>");
-            });
+            //    UnityEngine.Debug.Log($"-->> <color=green>AR Config Load Success</color> <color=white>Load config data with name :</color> <color=cyan>{loadedData.nameTag.ToString()}.</color>");
+            //});
         }
 
         private void InitializeTextures()
@@ -266,18 +266,19 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             EditorGUILayout.BeginHorizontal();
 
-            if(FindObjectOfType<ARSceneRoot>())
-            {
-                if (GUILayout.Button("Update AR Scene Root", GUILayout.Height(45)))
-                {
-                    CreateContent(false, arSceneRootSettings.settings, arSceneRootSettings.content);
-                }
-            }
-            else
+            if (FindObjectOfType<ARSceneRoot>() == false)
             {
                 if (GUILayout.Button("Create AR Scene Root", GUILayout.Height(45)))
                 {
-                    CreateContent(true, arSceneRootSettings.settings, arSceneRootSettings.content);
+                    OnRootBuilderCreateAction(arSceneRootSettings.settings, arSceneRootSettings.content);
+                }
+            }
+
+            if (FindObjectOfType<ARSceneRoot>() == true)
+            {
+                if (GUILayout.Button("Update AR Scene Root", GUILayout.Height(45)))
+                {
+                    OnRootBuilderUpdateAction(arSceneRootSettings.settings, arSceneRootSettings.content);
                 }
             }
 
@@ -285,13 +286,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             {
                 if (GUILayout.Button("Remove Created Root", GUILayout.Height(45)))
                 {
-                    RevertARSceneRoot(removed => 
-                    {
-                        if(removed)
-                        {
-
-                        }
-                    });
+                    OnRootBuilderRemoveAction(arSceneRootSettings.settings, arSceneRootSettings.content);
                 }
             }
 
@@ -300,48 +295,55 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             GUILayout.EndArea();
         }
 
-        private void CreateContent(bool createNew, ARSceneRootSettings settings, ARSceneRootContent content)
+        #region Root Builder Actions
+
+        private void OnRootBuilderCreateAction(ARSceneRootSettings rootSettings, ARSceneRootContent? content = null)
         {
             if (FindObjectOfType<ARSceneRoot>()) return;
 
             string name = string.IsNullOrEmpty(arSceneRootSettings.content.nameTag) ? "_3ridge AR Scene Root" : arSceneRootSettings.content.nameTag;
 
-            if (createNew)
+            ARSceneRootEditor.CreateNewARSceneRoot(name, rootSettings, content, rootCreated =>
             {
-                ARSceneRootEditor.CreateNewARSceneRoot(name, settings, content, results =>
+                if (rootCreated == true)
                 {
-                    if(results == true)
-                    {
-                        SaveSettingsData(ARSceneRootEditor.GetPreviousEventCamSettings(), (filePath, saved) =>
-                        {
-                            if(saved == false)
-                            {
-                                UnityEngine.Debug.LogWarning($"-->> <color=orange>Config Data Save Failed</color> <color=white>AR root config settings data failed to save at path :</color> <color=cyan>{filePath}</color>");
-                                return;
-                            }
-                            else
-                            {
-                                UnityEngine.Debug.Log($"-->> <color=green>Config Data Save Success</color> <color=white>AR root config settings data saved successfully at path :</color> <color=cyan>{filePath}</color>");
-                            }
-                        });
-                    }
-                });
 
-                if (settings.focusHandler == null) return;
-                
+                }
+
+                if (rootSettings.focusHandler == null) return;
+
                 string path = EditorUtility.SaveFilePanelInProject("Save AR Focus Asset", name, "asset", "Save Created AR Scene Focus Asset");
 
                 if (string.IsNullOrEmpty(path)) return;
-
-                // AssetDatabase.CreateAsset();
-            }
-            else
-            {
-                ARSceneRootEditor.UpdateARSceneRoot(name, settings, content);
-            }
+            });
         }
 
-        private static void RevertARSceneRoot(Action<bool> callback)
+        private void OnRootBuilderUpdateAction(ARSceneRootSettings rootSettings, ARSceneRootContent? content = null)
+        {
+
+            UnityEngine.Debug.Log("-->> Attempting To Update Root");
+
+            ARSceneRootEditor.UpdateARSceneRoot(name, rootSettings, content, updated =>
+            {
+                UnityEngine.Debug.Log("-->> Root Updated");
+            });
+        }
+        private void OnRootBuilderRemoveAction(ARSceneRootSettings rootSettings, ARSceneRootContent? content = null)
+        {
+            UnityEngine.Debug.Log("-->> Attempting To Remove Root");
+
+            RemoveSceneRoot(removed =>
+            {
+                if (removed)
+                {
+                    UnityEngine.Debug.Log("-->> Root Removed");
+                }
+            });
+        }
+
+        #endregion
+
+        private static void RemoveSceneRoot(Action<bool> callback)
         {
             if (FindObjectOfType<ARSceneRoot>() == null) return;
 
@@ -394,79 +396,29 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                     return;
                 }
 
-                DeleteSettingsData((directory, deleted) =>
-                {
-                    if (deleted == false)
-                    {
-                        UnityEngine.Debug.LogError($"-->> <color=orange>Directory Removal Failed : </color> <color=white>AR root config settings failed to delete directory : </color><color=cyan>{directory}.</color>");
-                        return;
-                    }
+                //DeleteSettingsData((directory, deleted) =>
+                //{
+                //    if (deleted == false)
+                //    {
+                //        UnityEngine.Debug.LogError($"-->> <color=orange>Directory Removal Failed : </color> <color=white>AR root config settings failed to delete directory : </color><color=cyan>{directory}.</color>");
+                //        return;
+                //    }
 
-                    if (deleted == true)
-                    {
-                        UnityEngine.Debug.Log($"-->> <color=green>Directory Removed Successfully : </color><color=white>AR root config settings deleted successfully from directory :</color> <color=cyan>{directory}</color>");
-                    }
-                });
+                //    if (deleted == true)
+                //    {
+                //        UnityEngine.Debug.Log($"-->> <color=green>Directory Removed Successfully : </color><color=white>AR root config settings deleted successfully from directory :</color> <color=cyan>{directory}</color>");
+                //    }
+                //});
             });
 
             #endregion
-        }
-
-        #endregion
-
-        #region Persistant Data
-
-        private static void SaveSettingsData(SceneEventCameraSettings settings, Action<string, bool> callback = null)
-        {
-            string configDataPath = string.Empty;
-
-            GetConfigurationDataDirectory((directory, exists) =>
-            {
-                if (exists == false)
-                {
-                    UnityEngine.Debug.LogWarning($"-->> <color=orange></color> <color=white>AR root config settings directory :</color> <color=cyan>{directory}</color> <color=white>doesn't exist.</color>");
-                    return;
-                }
-
-                string configData = JsonUtility.ToJson(settings);
-                configDataPath = Path.Combine(directory, "arconfigdata.json");
-
-                if(File.Exists(configDataPath) == true)
-                {
-                    File.Delete(configDataPath);
-                }
-
-                File.WriteAllText(configDataPath, configData);
-                callback.Invoke(configDataPath, File.Exists(configDataPath));
-            });
-        }
-
-        private static void LoadSettingsData(Action<SceneEventCameraSettings, bool> callback)
-        {
-            string path = Path.Combine(Application.persistentDataPath, "arconfigdata.json");
-
-            UnityEngine.Debug.Log($"-->> AR root config settings saved successfully at path : {path}");
-
-            GetConfigurationDataPath((path, exists) => 
-            {
-                if(exists == false)
-                {
-                    UnityEngine.Debug.LogWarning($"-->> <color=orange> Load AR Root Config Failed - </color> <color=white>AR root config settings data file missing, not found at path :</color> <color=cyan>{path}</color>");
-                    return;
-                }
-
-                string configDataFile = File.ReadAllText(path);
-                SceneEventCameraSettings configDataObject = JsonUtility.FromJson<SceneEventCameraSettings>(configDataFile);
-
-                callback.Invoke(configDataObject, string.IsNullOrEmpty(configDataFile));
-            });
         }
 
         private static void DeleteARSceneRoot(GameObject sceneContent, Action<bool> callback)
         {
             DestroyImmediate(sceneContent);
 
-            if(FindObjectOfType<ARSceneRoot>() == null)
+            if (FindObjectOfType<ARSceneRoot>() == null)
             {
                 callback.Invoke(true);
             }
@@ -474,48 +426,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             {
                 callback.Invoke(false);
             }
-        }
-
-        private static void DeleteSettingsData(Action<string, bool> callback)
-        {
-            GetConfigurationDataDirectory((directory, exists) =>
-            {
-                if (exists == false)
-                {
-                    UnityEngine.Debug.LogWarning($"-->> <color=orange></color> <color=white>AR root config settings directory :</color> <color=cyan>{directory}</color> <color=white>doesn't exist.</color>");
-                    return;
-                }
-
-                Directory.Delete(directory);
-                callback.Invoke(directory, Directory.Exists(directory));
-            });
-        }
-
-        private static void GetConfigurationDataDirectory(Action<string, bool> callback)
-        {
-            string folder = Path.Combine(Application.persistentDataPath, "3ridge AR Configuration Data");
-
-            if (Directory.Exists(folder) == false)
-            {
-                Directory.CreateDirectory(folder);
-            }
-
-            callback.Invoke(folder, Directory.Exists(folder));
-        }
-
-        private static void GetConfigurationDataPath(Action<string, bool> callback)
-        {
-            string configDataPath = string.Empty;
-
-            GetConfigurationDataDirectory((directory, exists) =>
-            {
-                if (exists == true)
-                {
-                    configDataPath = Path.Combine(directory, "arconfigdata.json");
-                }
-            });
-
-            callback.Invoke(configDataPath, File.Exists(configDataPath));
         }
 
         #endregion

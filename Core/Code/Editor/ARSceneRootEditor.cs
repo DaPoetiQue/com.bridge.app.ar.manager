@@ -147,9 +147,9 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         #endregion
 
-        public static void UpdateARSceneRoot(string nameTag, ARSceneRootSettings settings, ARSceneRootContent arSceneContent = null)
+        public static void UpdateARSceneRoot(string nameTag, ARSceneRootSettings settings, ARSceneRootContent arSceneContent = null, Action<bool> callback = null)
         {
-
+            callback.Invoke(true);
         }
 
         #region Previous Settings

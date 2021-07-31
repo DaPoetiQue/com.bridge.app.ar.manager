@@ -7,10 +7,6 @@ namespace Bridge.Core.App.AR.Manager
 {
     #region Enums
 
-    public enum ARSceneTempType
-    {
-    }
-
     #endregion
 
     #region Settings

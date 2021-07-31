@@ -76,6 +76,15 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         private static bool addCustomSceneRootContent;
         private static ARSceneRootObject arSceneRootSettings;
 
+        #region Storage Data
+
+        private static StorageData.Info storageDataInfo = new StorageData.Info();
+
+        private static string fileName = "ARSceenRootData";
+        private static string folderName = "3ridge App Data";
+
+        #endregion
+
         #endregion
 
         #region Unity
@@ -162,6 +171,9 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         private void InitializeContentData()
         {
             arSceneRootSettings = CreateInstance<ARSceneRootObject>();
+
+            storageDataInfo.fileName = fileName;
+            storageDataInfo.folderName = folderName;
         }
 
         #endregion
@@ -260,8 +272,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             EditorGUILayout.EndHorizontal();
 
-            GUILayout.Space(40);
-
             GUILayout.Space(10);
 
             EditorGUILayout.BeginHorizontal();
@@ -297,7 +307,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         #region Root Builder Actions
 
-        private void OnRootBuilderCreateAction(ARSceneRootSettings rootSettings, ARSceneRootContent? content = null)
+        private void OnRootBuilderCreateAction(ARSceneRootSettings rootSettings, ARSceneRootContent content)
         {
             if (FindObjectOfType<ARSceneRoot>()) return;
 
@@ -307,8 +317,19 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             {
                 if (rootCreated == true)
                 {
+                    Storage.JsonFiles.Save(storageDataInfo, rootSettings, (save) =>
+                    {
+                        if(save.error == true)
+                        {
+                            UnityEngine.Debug.LogWarning(save.errorValue);
+                            return;
+                        }
 
-
+                        if(save.success == true)
+                        {
+                            UnityEngine.Debug.Log(save.successValue);
+                        }
+                    });
                 }
 
                 if (rootSettings.focusHandler == null) return;

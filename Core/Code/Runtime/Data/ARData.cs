@@ -83,6 +83,7 @@ namespace Bridge.Core.App.AR.Manager
         public SerializableVector3 position;
         public SerializableQuaternion rotation;
 
+        public bool usedExistingSceneEventCamera;
         //public Transform parent;
     }
 

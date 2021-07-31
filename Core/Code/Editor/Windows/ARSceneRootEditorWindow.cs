@@ -357,8 +357,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         }
         private void OnRootBuilderRemoveAction(ARSceneRootSettings rootSettings, ARSceneRootContent? content = null)
         {
-            UnityEngine.Debug.Log("-->> Attempting To Remove Root");
-
             RemoveSceneRoot(removed =>
             {
                 if (removed)
@@ -374,33 +372,35 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         {
             if (FindObjectOfType<ARSceneRoot>() == null) return;
 
-            #region AR Scene Event Camera
+            #region Load AR Scene Event Camera data
 
-            if (ARSceneRootEditor.usedExistingSceneEventCamera)
-            {
-                Camera arCam = ARSceneRootEditor.arSceneEventCamera;
-                arCam.name = ARSceneRootEditor.GetPreviousEventCamSettings().nameTag;
+            // Storage.JsonFiles.Load(storageDataInfo, );
 
-                arCam.clearFlags = ARSceneRootEditor.GetPreviousEventCamSettings().clearFlags;
-                arCam.cullingMask = ARSceneRootEditor.GetPreviousEventCamSettings().cullingMask;
-                arCam.backgroundColor = ARSceneRootEditor.GetPreviousEventCamSettings().backgroundColor;
+            //if (ARSceneRootEditor.usedExistingSceneEventCamera)
+            //{
+            //    Camera arCam = ARSceneRootEditor.arSceneEventCamera;
+            //    arCam.name = ARSceneRootEditor.GetPreviousEventCamSettings().nameTag;
 
-                arCam.cameraType = ARSceneRootEditor.GetPreviousEventCamSettings().cameraType;
-                arCam.usePhysicalProperties = ARSceneRootEditor.GetPreviousEventCamSettings().usePhysicalProperties;
+            //    arCam.clearFlags = ARSceneRootEditor.GetPreviousEventCamSettings().clearFlags;
+            //    arCam.cullingMask = ARSceneRootEditor.GetPreviousEventCamSettings().cullingMask;
+            //    arCam.backgroundColor = ARSceneRootEditor.GetPreviousEventCamSettings().backgroundColor;
 
-                arCam.fieldOfView = ARSceneRootEditor.GetPreviousEventCamSettings().fieldOfView;
-                arCam.nearClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().nearClipPlane;
-                arCam.farClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().farClipPlane;
+            //    arCam.cameraType = ARSceneRootEditor.GetPreviousEventCamSettings().cameraType;
+            //    arCam.usePhysicalProperties = ARSceneRootEditor.GetPreviousEventCamSettings().usePhysicalProperties;
 
-                // arCam.transform.SetParent(ARSceneRootEditor.GetPreviousEventCamSettings().parent, false);
+            //    arCam.fieldOfView = ARSceneRootEditor.GetPreviousEventCamSettings().fieldOfView;
+            //    arCam.nearClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().nearClipPlane;
+            //    arCam.farClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().farClipPlane;
 
-                arCam.transform.localPosition = new Vector3(ARSceneRootEditor.GetPreviousEventCamSettings().position.x, ARSceneRootEditor.GetPreviousEventCamSettings().position.y, ARSceneRootEditor.GetPreviousEventCamSettings().position.z);
-                arCam.transform.localRotation = new Quaternion(ARSceneRootEditor.GetPreviousEventCamSettings().rotation.x, ARSceneRootEditor.GetPreviousEventCamSettings().rotation.y, ARSceneRootEditor.GetPreviousEventCamSettings().rotation.z, ARSceneRootEditor.GetPreviousEventCamSettings().rotation.w);
+            //    // arCam.transform.SetParent(ARSceneRootEditor.GetPreviousEventCamSettings().parent, false);
 
-                if (arCam.gameObject.GetComponent<ARPoseDriver>()) DestroyImmediate(arCam.gameObject.GetComponent<ARPoseDriver>());
-                if (arCam.gameObject.GetComponent<ARCameraBackground>()) DestroyImmediate(arCam.gameObject.GetComponent<ARCameraBackground>());
-                if(arCam.gameObject.GetComponent<ARCameraManager>()) DestroyImmediate(arCam.gameObject.GetComponent<ARCameraManager>());
-            }
+            //    arCam.transform.localPosition = new Vector3(ARSceneRootEditor.GetPreviousEventCamSettings().position.x, ARSceneRootEditor.GetPreviousEventCamSettings().position.y, ARSceneRootEditor.GetPreviousEventCamSettings().position.z);
+            //    arCam.transform.localRotation = new Quaternion(ARSceneRootEditor.GetPreviousEventCamSettings().rotation.x, ARSceneRootEditor.GetPreviousEventCamSettings().rotation.y, ARSceneRootEditor.GetPreviousEventCamSettings().rotation.z, ARSceneRootEditor.GetPreviousEventCamSettings().rotation.w);
+
+            //    if (arCam.gameObject.GetComponent<ARPoseDriver>()) DestroyImmediate(arCam.gameObject.GetComponent<ARPoseDriver>());
+            //    if (arCam.gameObject.GetComponent<ARCameraBackground>()) DestroyImmediate(arCam.gameObject.GetComponent<ARCameraBackground>());
+            //    if(arCam.gameObject.GetComponent<ARCameraManager>()) DestroyImmediate(arCam.gameObject.GetComponent<ARCameraManager>());
+            //}
 
             #endregion
 
@@ -415,28 +415,28 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             #region Delete AR Scene Root Object
 
-            DeleteARSceneRoot(FindObjectOfType<ARSceneRoot>().gameObject, deletedSuccessfully => 
-            {
-                if(deletedSuccessfully == false)
-                {
-                    UnityEngine.Debug.LogError($"-->> <color=orange>AR Scene Root Delete Failed : </color> <color=white>AR scene root content failed to delete.</color>");
-                    return;
-                }
+            //DeleteARSceneRoot(FindObjectOfType<ARSceneRoot>().gameObject, deletedSuccessfully => 
+            //{
+            //    if(deletedSuccessfully == false)
+            //    {
+            //        UnityEngine.Debug.LogError($"-->> <color=orange>AR Scene Root Delete Failed : </color> <color=white>AR scene root content failed to delete.</color>");
+            //        return;
+            //    }
 
-                //DeleteSettingsData((directory, deleted) =>
-                //{
-                //    if (deleted == false)
-                //    {
-                //        UnityEngine.Debug.LogError($"-->> <color=orange>Directory Removal Failed : </color> <color=white>AR root config settings failed to delete directory : </color><color=cyan>{directory}.</color>");
-                //        return;
-                //    }
+            //    //DeleteSettingsData((directory, deleted) =>
+            //    //{
+            //    //    if (deleted == false)
+            //    //    {
+            //    //        UnityEngine.Debug.LogError($"-->> <color=orange>Directory Removal Failed : </color> <color=white>AR root config settings failed to delete directory : </color><color=cyan>{directory}.</color>");
+            //    //        return;
+            //    //    }
 
-                //    if (deleted == true)
-                //    {
-                //        UnityEngine.Debug.Log($"-->> <color=green>Directory Removed Successfully : </color><color=white>AR root config settings deleted successfully from directory :</color> <color=cyan>{directory}</color>");
-                //    }
-                //});
-            });
+            //    //    if (deleted == true)
+            //    //    {
+            //    //        UnityEngine.Debug.Log($"-->> <color=green>Directory Removed Successfully : </color><color=white>AR root config settings deleted successfully from directory :</color> <color=cyan>{directory}</color>");
+            //    //    }
+            //    //});
+            //});
 
             #endregion
         }

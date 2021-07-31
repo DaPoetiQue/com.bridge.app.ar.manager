@@ -313,11 +313,17 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             string name = string.IsNullOrEmpty(arSceneRootSettings.content.nameTag) ? "_3ridge AR Scene Root" : arSceneRootSettings.content.nameTag;
 
-            ARSceneRootEditor.CreateNewARSceneRoot(name, rootSettings, content, rootCreated =>
+            ARSceneRootEditor.CreateNewARSceneRoot(name, rootSettings, content, (createdSettings, results) =>
             {
-                if (rootCreated == true)
+                if(results.error)
                 {
-                    Storage.JsonFiles.Save(storageDataInfo, rootSettings, (save) =>
+                    UnityEngine.Debug.LogWarning(results.errorValue);
+                    return;
+                }
+
+                if (results.success == true)
+                {
+                    Storage.JsonFiles.Save(storageDataInfo, createdSettings, (save) =>
                     {
                         if(save.error == true)
                         {
@@ -342,7 +348,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         private void OnRootBuilderUpdateAction(ARSceneRootSettings rootSettings, ARSceneRootContent? content = null)
         {
-
             UnityEngine.Debug.Log("-->> Attempting To Update Root");
 
             ARSceneRootEditor.UpdateARSceneRoot(name, rootSettings, content, updated =>
@@ -387,11 +392,10 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 arCam.nearClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().nearClipPlane;
                 arCam.farClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().farClipPlane;
 
-                arCam.transform.SetParent(ARSceneRootEditor.GetPreviousEventCamSettings().parent, false);
+                // arCam.transform.SetParent(ARSceneRootEditor.GetPreviousEventCamSettings().parent, false);
 
-                arCam.transform.localPosition = ARSceneRootEditor.GetPreviousEventCamSettings().position;
-                arCam.transform.localScale = ARSceneRootEditor.GetPreviousEventCamSettings().scale;
-                arCam.transform.localRotation = ARSceneRootEditor.GetPreviousEventCamSettings().rotation;
+                arCam.transform.localPosition = new Vector3(ARSceneRootEditor.GetPreviousEventCamSettings().position.x, ARSceneRootEditor.GetPreviousEventCamSettings().position.y, ARSceneRootEditor.GetPreviousEventCamSettings().position.z);
+                arCam.transform.localRotation = new Quaternion(ARSceneRootEditor.GetPreviousEventCamSettings().rotation.x, ARSceneRootEditor.GetPreviousEventCamSettings().rotation.y, ARSceneRootEditor.GetPreviousEventCamSettings().rotation.z, ARSceneRootEditor.GetPreviousEventCamSettings().rotation.w);
 
                 if (arCam.gameObject.GetComponent<ARPoseDriver>()) DestroyImmediate(arCam.gameObject.GetComponent<ARPoseDriver>());
                 if (arCam.gameObject.GetComponent<ARCameraBackground>()) DestroyImmediate(arCam.gameObject.GetComponent<ARCameraBackground>());

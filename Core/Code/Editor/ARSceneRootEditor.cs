@@ -1,8 +1,9 @@
+using System;
 using UnityEngine;
 using UnityEditor;
 using Bridge.Core.App.AR.Manager;
 using UnityEngine.XR.ARFoundation;
-using System;
+using Bridge.App.Serializations.Manager;
 
 namespace Bridge.Core.UnityEditor.AR.Manager
 {
@@ -22,8 +23,10 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         #region Initialize AR Content Manager
 
-        public static void CreateNewARSceneRoot(string nameTag, ARSceneRootSettings settings, ARSceneRootContent arSceneContent, Action<bool> callback = null)
+        public static void CreateNewARSceneRoot(string nameTag, ARSceneRootSettings settings, ARSceneRootContent arSceneContent, Action<SceneEventCameraSettings, StorageData.CallBackResults> callback = null)
         {
+            var callBackResults = new StorageData.CallBackResults();
+
             GameObject arSceneManager = new GameObject(nameTag);
             arSceneManager.AddComponent<ARSceneRoot>();
 
@@ -60,8 +63,11 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             {
                 if (sceneEventCam == null)
                 {
-                    UnityEngine.Debug.LogWarning("-->> <color=white>Scene Event Camera Critical Warning :</color> <color=orange>There is no camera found in the current scene.</color> <color=white>Create a new camera or enable</color> <color=cyan>'Create Event Camera'</color> <color=white>variable when creating an AR Scene  Root template.</color>");
-                    return;
+                    callBackResults.error = true;
+                    callBackResults.errorValue = "-->> <color=white>Scene Event Camera Critical Warning :</color> <color=orange>There is no camera found in the current scene.</color> <color=white>Create a new camera or enable</color> <color=cyan>'Create Event Camera'</color> <color=white>variable when creating an AR Scene  Root template.</color>";
+
+                    callBackResults.success = false;
+                    callBackResults.successValue = "Null";
                 }
 
                 arSceneEventCamera = sceneEventCam;
@@ -93,11 +99,18 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 previousEventCameraSettings.nearClipPlane = arSceneEventCamera.nearClipPlane;
                 previousEventCameraSettings.farClipPlane = arSceneEventCamera.farClipPlane;
 
-                previousEventCameraSettings.position = arSceneEventCamera.transform.localPosition;
-                previousEventCameraSettings.scale = arSceneEventCamera.transform.localScale;
-                previousEventCameraSettings.rotation = arSceneEventCamera.transform.localRotation;
+                // Setting Serializable Position
+                previousEventCameraSettings.position.x = arSceneEventCamera.transform.localPosition.x;
+                previousEventCameraSettings.position.y = arSceneEventCamera.transform.localPosition.y;
+                previousEventCameraSettings.position.z = arSceneEventCamera.transform.localPosition.z;
 
-                previousEventCameraSettings.parent = arSceneEventCamera.transform.parent;
+                // Setting Serializable Rotation
+                previousEventCameraSettings.rotation.x = arSceneEventCamera.transform.localRotation.x;
+                previousEventCameraSettings.rotation.y = arSceneEventCamera.transform.localRotation.y;
+                previousEventCameraSettings.rotation.z = arSceneEventCamera.transform.localRotation.z;
+                previousEventCameraSettings.rotation.w = arSceneEventCamera.transform.localRotation.w;
+
+                // previousEventCameraSettings.parent = arSceneEventCamera.transform.parent;
 
                 #endregion
 
@@ -127,6 +140,24 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
                 sessionOrigin.camera = arSceneEventCamera;
 
+                if(sessionOrigin.camera == null)
+                {
+                    callBackResults.error = true;
+                    callBackResults.errorValue = "-->> <color=white>Scene Event Camera Critical Warning :</color> <color=orange>There is no camera assigned to [Session Origin] in the current scene.</color> <color=white>Create a new camera or enable</color> <color=cyan>'Create Event Camera'</color> <color=white>variable when creating an AR Scene  Root template.</color>";
+
+                    callBackResults.success = false;
+                    callBackResults.successValue = string.Empty;
+                }
+
+                if (sessionOrigin.camera != null)
+                {
+                    callBackResults.success = true;
+                    callBackResults.successValue = "-->> <color=green>Success</color> - <color=white> AR scene root camera has been successfully assigned to the session origin</color>";
+
+                    callBackResults.error = false;
+                    callBackResults.errorValue = string.Empty;
+                }
+
                 #endregion
             }
 
@@ -144,7 +175,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             #endregion
 
-            callback.Invoke(true);
+            callback.Invoke(previousEventCameraSettings, callBackResults);
         }
 
         #endregion

@@ -80,12 +80,39 @@ namespace Bridge.Core.App.AR.Manager
         public float nearClipPlane;
         public float farClipPlane;
 
-        public Vector3 position;
-        public Vector3 scale;
-        public Quaternion rotation;
+        public SerializableVector3 position;
+        public SerializableQuaternion rotation;
 
-        public Transform parent;
+        //public Transform parent;
     }
+
+    #region Serializable Data
+
+    [Serializable]
+    public struct SerializableVector2
+    {
+        public float x;
+        public float y;
+    }
+
+    [Serializable]
+    public struct SerializableVector3
+    {
+        public float x;
+        public float y;
+        public float z;
+    }
+
+    [Serializable]
+    public struct SerializableQuaternion
+    {
+        public float x;
+        public float y;
+        public float z;
+        public float w;
+    }
+
+    #endregion
 
     #endregion
 

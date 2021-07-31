@@ -7,11 +7,11 @@ using Bridge.App.Serializations.Manager;
 
 namespace Bridge.Core.UnityEditor.AR.Manager
 {
-    public class ARContentEditorWindow : EditorWindow
+    public class ARSceneRootEditorWindow : EditorWindow
     {
         #region Components
 
-        private static ARContentEditorWindow window;
+        private static ARSceneRootEditorWindow window;
 
         #endregion
 
@@ -20,7 +20,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         [MenuItem("Window/3ridge/AR Content Manager %&a")]
         private static void OpenARManagerEditor()
         {
-            window = GetWindow<ARContentEditorWindow>("AR Content Editor");
+            window = GetWindow<ARSceneRootEditorWindow>("AR Content Editor");
             window.minSize = new Vector2(400, 350);
 
             window.Show();
@@ -308,6 +308,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 if (rootCreated == true)
                 {
 
+
                 }
 
                 if (rootSettings.focusHandler == null) return;
@@ -365,7 +366,8 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 arCam.nearClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().nearClipPlane;
                 arCam.farClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().farClipPlane;
 
-                arCam.transform.parent = null;
+                arCam.transform.SetParent(ARSceneRootEditor.GetPreviousEventCamSettings().parent, false);
+
                 arCam.transform.localPosition = ARSceneRootEditor.GetPreviousEventCamSettings().position;
                 arCam.transform.localScale = ARSceneRootEditor.GetPreviousEventCamSettings().scale;
                 arCam.transform.localRotation = ARSceneRootEditor.GetPreviousEventCamSettings().rotation;

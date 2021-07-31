@@ -97,6 +97,8 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 previousEventCameraSettings.scale = arSceneEventCamera.transform.localScale;
                 previousEventCameraSettings.rotation = arSceneEventCamera.transform.localRotation;
 
+                previousEventCameraSettings.parent = arSceneEventCamera.transform.parent;
+
                 #endregion
 
                 #region Set Current Camera Settings

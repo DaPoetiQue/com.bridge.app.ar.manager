@@ -83,6 +83,8 @@ namespace Bridge.Core.App.AR.Manager
         public Vector3 position;
         public Vector3 scale;
         public Quaternion rotation;
+
+        public Transform parent;
     }
 
     #endregion

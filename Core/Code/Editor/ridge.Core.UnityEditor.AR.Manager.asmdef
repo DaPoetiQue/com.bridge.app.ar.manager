@@ -1,0 +1,20 @@
+{
+    "name": "ridge.Core.UnityEditor.AR.Manager",
+    "rootNamespace": "ridge.Core.UnityEditor.AR.Manager",
+    "references": [
+        "GUID:5ef81270e65190e4babbe8d8e6e466c5",
+        "GUID:bba5ccbc646e2774eacf3d648929a2e7",
+        "GUID:a9420e37d7990b54abdef6688edbe313"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

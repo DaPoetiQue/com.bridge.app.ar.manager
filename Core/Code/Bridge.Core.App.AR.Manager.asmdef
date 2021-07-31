@@ -1,0 +1,18 @@
+{
+    "name": "Bridge.Core.App.AR.Manager",
+    "rootNamespace": "Bridge.Core.App.AR.Manager",
+    "references": [
+        "GUID:5ef81270e65190e4babbe8d8e6e466c5",
+        "GUID:e716835e950357547805ba81a6fab883",
+        "GUID:a9420e37d7990b54abdef6688edbe313"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

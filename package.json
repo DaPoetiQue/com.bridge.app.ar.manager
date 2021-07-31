@@ -1,0 +1,28 @@
+{
+    "name": "com.bridge.app.ar.manager",
+    "version": "1.0.0",
+    "displayName": "3ridge AR Manager",
+    "description": "Contains helpful assets for building ar applications.",
+    "unity": "2021.1",
+    "unityRelease": "0b5",
+    "dependencies": {
+      "com.unity.xr.arcore": "4.1.7",
+      "com.unity.xr.arfoundation": "4.1.7",
+      "com.unity.xr.arkit": "4.1.7"
+    },
+   "keywords": [
+      "Bridge",
+      "3ridge",
+      "AR",
+      "Augmented",
+      "Augmented Reality",
+      "Bridge AR Manager",
+      "3ridge AR Manager"
+    ],
+    "author": {
+      "name": "3ridge",
+      "email": "hlulani@3ridge.co.za",
+      "url": "https://www.3ridge.co.za"
+    }
+  }
+  

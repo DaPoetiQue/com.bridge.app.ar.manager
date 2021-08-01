@@ -78,10 +78,11 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         #region Storage Data
 
-        private static StorageData.Info storageDataInfo = new StorageData.Info();
-
-        private static string fileName = "ARSceenRootData";
-        private static string folderName = "3ridge App Data";
+        private static StorageData.DirectoryInfoData storageDataInfo = new StorageData.DirectoryInfoData() 
+        { 
+            fileName = "ARSceenRootData", 
+            folderName = "3ridge App Data"
+        };
 
         #endregion
 
@@ -159,9 +160,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         private void InitializeContentData()
         {
             arSceneRootSettings = CreateInstance<ARSceneRootObject>();
-
-            storageDataInfo.fileName = fileName;
-            storageDataInfo.folderName = folderName;
         }
 
         #endregion
@@ -256,14 +254,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             EditorGUILayout.BeginHorizontal();
 
-            // contentType = (ContentType)EditorGUILayout.EnumPopup("Content Type", contentType);
-
-            EditorGUILayout.EndHorizontal();
-
-            GUILayout.Space(10);
-
-            EditorGUILayout.BeginHorizontal();
-
             if (FindObjectOfType<ARSceneRoot>() == false)
             {
                 if (GUILayout.Button("Create AR Scene Root", GUILayout.Height(45)))
@@ -289,6 +279,17 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             }
 
             EditorGUILayout.EndHorizontal();
+
+            Storage.JsonData.StorageDataFileExist(storageDataInfo, (loadedFileData, filesCallBackResults) => 
+            {
+                if(filesCallBackResults.success == true)
+                {
+                    if (GUILayout.Button("Open Saved File Location", GUILayout.Height(45)))
+                    {
+                        EditorUtility.RevealInFinder(loadedFileData.filePath);
+                    }
+                }
+            });
 
             GUILayout.EndArea();
         }

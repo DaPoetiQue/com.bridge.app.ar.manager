@@ -101,18 +101,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             InitializeTextures();
             InitializeLayoutStyles();
             InitializeContentData();
-
-            //SerializationManager.LoadData<>((loadedData, success) => 
-            //{
-            //    if(success == false)
-            //    {
-            //        UnityEngine.Debug.LogWarning("-->> Config data failed to load data from given path.");
-            //    }
-
-            //    ARSceneRootEditor.SetPreviousEventCamSettings(loadedData);
-
-            //    UnityEngine.Debug.Log($"-->> <color=green>AR Config Load Success</color> <color=white>Load config data with name :</color> <color=cyan>{loadedData.nameTag.ToString()}.</color>");
-            //});
         }
 
         private void InitializeTextures()
@@ -323,7 +311,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
                 if (results.success == true)
                 {
-                    Storage.JsonFiles.Save(storageDataInfo, createdSettings, (savedDataResults) =>
+                    Storage.JsonData.Save(storageDataInfo, createdSettings, (savedDataResults) =>
                     {
                         if(savedDataResults.error == true)
                         {

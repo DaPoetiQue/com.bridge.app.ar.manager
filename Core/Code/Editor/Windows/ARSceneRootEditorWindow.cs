@@ -323,17 +323,17 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
                 if (results.success == true)
                 {
-                    Storage.JsonFiles.Save(storageDataInfo, createdSettings, (save) =>
+                    Storage.JsonFiles.Save(storageDataInfo, createdSettings, (savedDataResults) =>
                     {
-                        if(save.error == true)
+                        if(savedDataResults.error == true)
                         {
-                            UnityEngine.Debug.LogWarning(save.errorValue);
+                            UnityEngine.Debug.LogWarning(savedDataResults.errorValue);
                             return;
                         }
 
-                        if(save.success == true)
+                        if(savedDataResults.success == true)
                         {
-                            UnityEngine.Debug.Log(save.successValue);
+                            UnityEngine.Debug.Log(savedDataResults.successValue);
                         }
                     });
                 }
@@ -373,6 +373,8 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             if (FindObjectOfType<ARSceneRoot>() == null) return;
 
             #region Load AR Scene Event Camera data
+
+            //Storage.JsonFiles.Load(storageDataInfo,  )
 
             // Storage.JsonFiles.Load(storageDataInfo, );
 

@@ -3,7 +3,8 @@ using UnityEngine;
 using UnityEditor;
 using Bridge.Core.App.AR.Manager;
 using UnityEngine.XR.ARFoundation;
-using Bridge.App.Serializations.Manager;
+using Bridge.Core.App.Events;
+using Bridge.Core.Debug;
 
 namespace Bridge.Core.UnityEditor.AR.Manager
 {
@@ -11,164 +12,52 @@ namespace Bridge.Core.UnityEditor.AR.Manager
     {
         #region
 
-        public static Camera arSceneEventCamera = null;
+        public static Camera sceneRootCamera = null;
         public static Light arSceneLight = null;
 
-        public static bool usedExistingSceneEventCamera;
-        public static bool usedExistingSceneLight;
-
-        private static SceneEventCameraSettings previousEventCameraSettings;
+        private static SceneCameraData.SerializableCameraData serializableCameraData;
+        private static SceneCameraData.NoneSerializableCameraData sceneCameraData;
 
         #endregion
 
         #region Initialize AR Content Manager
 
-        public static void CreateNewARSceneRoot(string nameTag, ARSceneRootSettings settings, ARSceneRootContent arSceneContent, Action<SceneEventCameraSettings, StorageData.CallBackResults> callback = null)
+        /// <summary>
+        /// This function creates a new ar scene root.
+        /// </summary>
+        /// <param name="nameTag"></param>
+        /// <param name="settings"></param>
+        /// <param name="sceneRootObject"></param>
+        /// <param name="callback"></param>
+        public static void CreateARSceneRoot(SceneRootObject sceneRootObject, Action<SceneCameraData.SerializableCameraData, AppEventsData.CallBackResults> callback = null)
         {
-            var callBackResults = new StorageData.CallBackResults();
+            var callBackResults = new AppEventsData.CallBackResults();
 
-            GameObject arSceneManager = new GameObject(nameTag);
-            arSceneManager.AddComponent<ARSceneRoot>();
+            #region Scene Objects
+
+            GameObject arSceneRoot = new GameObject(sceneRootObject.content.nameTag);
+            arSceneRoot.AddComponent<ARSceneRoot>();
 
             if (Selection.gameObjects.Length > 0 && !Selection.gameObjects[0].GetComponent<Camera>())
             {
-                arSceneManager.transform.SetParent(Selection.gameObjects[0].transform);
+                arSceneRoot.transform.SetParent(Selection.gameObjects[0].transform);
             }
 
-            GameObject arRoot = new GameObject("_AR Scene Root");
-            arRoot.transform.SetParent(arSceneManager.transform);
+            GameObject sceneRoot = new GameObject("_AR Scene Root");
+            sceneRoot.transform.SetParent(arSceneRoot.transform);
 
             GameObject arSession = new GameObject("AR Scene Session");
             arSession.AddComponent<ARSession>();
             arSession.AddComponent<ARInputManager>();
-            arSession.transform.SetParent(arRoot.transform);
+            arSession.transform.SetParent(sceneRoot.transform);
 
             GameObject arSessionOrigin = new GameObject("_AR Scene Session Origin");
             ARSessionOrigin sessionOrigin = arSessionOrigin.AddComponent<ARSessionOrigin>();
+            //sessionOrigin.camera = CreateRootCamera(sceneRootObject.content.createRootCamera);
             ARPlaneManager planeManager = arSessionOrigin.AddComponent<ARPlaneManager>();
             arSessionOrigin.AddComponent<ARRaycastManager>();
             planeManager.planePrefab = Resources.Load<GameObject>("AR Data/3ridge AR Scene Plane");
-            arSessionOrigin.transform.SetParent(arRoot.transform);
-
-            #region Scene Camera
-
-            Camera sceneEventCam = null;
-
-            if (arSceneContent.createEventCamera == false)
-            {
-                sceneEventCam = FindObjectOfType<Camera>();
-            }
-
-            if (arSceneContent != null && arSceneContent.createEventCamera == false)
-            {
-                if (sceneEventCam == null)
-                {
-                    callBackResults.error = true;
-                    callBackResults.errorValue = "-->> <color=white>Scene Event Camera Critical Warning :</color> <color=orange>There is no camera found in the current scene.</color> <color=white>Create a new camera or enable</color> <color=cyan>'Create Event Camera'</color> <color=white>variable when creating an AR Scene  Root template.</color>";
-
-                    callBackResults.success = false;
-                    callBackResults.successValue = "Null";
-                }
-
-                arSceneEventCamera = sceneEventCam;
-
-                if(arSceneEventCamera != null)
-                {
-                    usedExistingSceneEventCamera = true;
-                }
-            }
-
-            if(sceneEventCam == null && arSceneContent != null && arSceneContent.createEventCamera == true)
-            {
-                GameObject arCamera = new GameObject(nameTag);
-                arSceneEventCamera = arCamera.AddComponent<Camera>();
-                usedExistingSceneEventCamera = false;
-            }
-
-            previousEventCameraSettings.usedExistingSceneEventCamera = usedExistingSceneEventCamera;
-
-            if (arSceneEventCamera != null && previousEventCameraSettings.usedExistingSceneEventCamera == true)
-            {
-                #region Store Default Cam Settings
-
-                previousEventCameraSettings.nameTag = arSceneEventCamera.name;
-
-                previousEventCameraSettings.clearFlags = arSceneEventCamera.clearFlags;
-                previousEventCameraSettings.cullingMask = arSceneEventCamera.cullingMask;
-                previousEventCameraSettings.cameraType = arSceneEventCamera.cameraType;
-                previousEventCameraSettings.backgroundColor = arSceneEventCamera.backgroundColor;
-
-                previousEventCameraSettings.usePhysicalProperties = arSceneEventCamera.usePhysicalProperties;
-                previousEventCameraSettings.depth = arSceneEventCamera.depth;
-
-                previousEventCameraSettings.fieldOfView = arSceneEventCamera.fieldOfView;
-                previousEventCameraSettings.nearClipPlane = arSceneEventCamera.nearClipPlane;
-                previousEventCameraSettings.farClipPlane = arSceneEventCamera.farClipPlane;
-
-                // Setting Serializable Position
-                previousEventCameraSettings.position.x = arSceneEventCamera.transform.localPosition.x;
-                previousEventCameraSettings.position.y = arSceneEventCamera.transform.localPosition.y;
-                previousEventCameraSettings.position.z = arSceneEventCamera.transform.localPosition.z;
-
-                // Setting Serializable Rotation
-                previousEventCameraSettings.rotation.x = arSceneEventCamera.transform.localRotation.x;
-                previousEventCameraSettings.rotation.y = arSceneEventCamera.transform.localRotation.y;
-                previousEventCameraSettings.rotation.z = arSceneEventCamera.transform.localRotation.z;
-                previousEventCameraSettings.rotation.w = arSceneEventCamera.transform.localRotation.w;
-
-                // previousEventCameraSettings.parent = arSceneEventCamera.transform.parent;
-
-                #endregion
-            }
-
-            #region AR Root Setup
-
-            if (arSceneEventCamera != null)
-            {
-                arSceneEventCamera.name = "AR Scene Event Cam";
-
-                arSceneEventCamera.clearFlags = CameraClearFlags.SolidColor;
-                arSceneEventCamera.cameraType = CameraType.Game;
-                arSceneEventCamera.backgroundColor = Color.black;
-
-                arSceneEventCamera.usePhysicalProperties = false;
-                arSceneEventCamera.depth = -1; // TODO : Test this in AR.
-
-                arSceneEventCamera.fieldOfView = 60.0f;
-                arSceneEventCamera.nearClipPlane = 0.01f;
-                arSceneEventCamera.farClipPlane = 150.0f;
-
-                arSceneEventCamera.transform.SetParent(sessionOrigin.transform);
-                arSceneEventCamera.transform.localPosition = Vector3.zero;
-                arSceneEventCamera.transform.localRotation = Quaternion.identity;
-
-                ARCameraManager cameManager = arSceneEventCamera.gameObject.AddComponent<ARCameraManager>();
-                arSceneEventCamera.gameObject.AddComponent<ARPoseDriver>();
-                arSceneEventCamera.gameObject.AddComponent<ARCameraBackground>();
-                cameManager.requestedLightEstimation = settings.estimatedLighting;
-
-                sessionOrigin.camera = arSceneEventCamera;
-
-                if (sessionOrigin.camera == null)
-                {
-                    callBackResults.error = true;
-                    callBackResults.errorValue = "-->> <color=white>Scene Event Camera Critical Warning :</color> <color=orange>There is no camera assigned to [Session Origin] in the current scene.</color> <color=white>Create a new camera or enable</color> <color=cyan>'Create Event Camera'</color> <color=white>variable when creating an AR Scene  Root template.</color>";
-
-                    callBackResults.success = false;
-                    callBackResults.successValue = string.Empty;
-                }
-
-                if (sessionOrigin.camera != null)
-                {
-                    callBackResults.success = true;
-                    callBackResults.successValue = "-->> <color=green>Success</color> - <color=white> AR scene root camera has been successfully assigned to the session origin</color>";
-
-                    callBackResults.error = false;
-                    callBackResults.errorValue = string.Empty;
-                }
-            }
-
-            #endregion
+            arSessionOrigin.transform.SetParent(sceneRoot.transform);
 
             #endregion
 
@@ -178,32 +67,103 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             arSceneLight.AddComponent<ARSceneLight>();
             arSceneLight.transform.SetParent(sessionOrigin.transform);
             Light sceneLight = arSceneLight.AddComponent<Light>();
-            sceneLight.type = settings.sceneLightType;
-            sceneLight.shadowNearPlane = arSceneEventCamera.nearClipPlane;
-            sceneLight.shadows = settings.lightShadowType;
+            sceneLight.type = sceneRootObject.settings.sceneLightType;
+            //sceneLight.shadowNearPlane = sceneEventCam.nearClipPlane;
+            sceneLight.shadows = sceneRootObject.settings.lightShadowType;
 
             #endregion
 
-            callback.Invoke(previousEventCameraSettings, callBackResults);
+            callback.Invoke(serializableCameraData, callBackResults);
+        }
+
+        /// <summary>
+        /// This functions create a new ar scene root camera
+        /// </summary>
+        /// <returns></returns>
+        public static Camera SetupRootCamera(Transform parent, bool createCamera)
+        {
+            if(createCamera)
+            {
+                CreateRootCamera((createdCamera, createCameraResults) => 
+                {
+                    if(createCameraResults.success == true)
+                    {
+                        // DebugLogger.Log(LogData.LogLevel.)
+                    }
+                });
+            }
+            else
+            {
+                sceneRootCamera = Camera.main;
+
+
+            }
+
+            return sceneRootCamera;
+        }
+
+        /// <summary>
+        /// Thsi function creates and returns a new ar scene root camera.
+        /// </summary>
+        /// <param name="callBack"></param>
+        /// <returns></returns>
+        private static void CreateRootCamera(Action<Camera ,AppEventsData.CallBackResults> callBack)
+        {
+            var callBackResults = new AppEventsData.CallBackResults();
+
+            Camera rootCamera = new Camera();
+            rootCamera.name = "AR Root Camera";
+        }
+
+        /// <summary>
+        /// This function returns the currently set scene root camera.
+        /// </summary>
+        /// <returns></returns>
+        public static Camera GetSceneRootCamera()
+        {
+            if(sceneRootCamera == null)
+            {
+                UnityEngine.Debug.LogWarning("-->> There is no scene root camera found. Returning Null.");
+            }
+
+            return sceneRootCamera;
+        }
+
+        /// <summary>
+        /// Resets the camera to its default state.
+        /// </summary>
+        /// <param name="rootCamera"></param>
+        public static void ResetSceneRootCamera(Camera rootCamera)
+        {
+
+        }
+
+        private static void SerializeCameraData(SceneCameraData.NoneSerializableCameraData sceneCameraData, Action<SceneCameraData.SerializableCameraData, AppEventsData.CallBackResults> callBack = null)
+        {
+            var serializedCamera = new SceneCameraData.SerializableCameraData();
+            var results = new AppEventsData.CallBackResults();
+
+
+            callBack.Invoke(serializedCamera, results);
         }
 
         #endregion
 
-        public static void UpdateARSceneRoot(string nameTag, ARSceneRootSettings settings, ARSceneRootContent arSceneContent = null, Action<bool> callback = null)
+        public static void UpdateARSceneRoot(string nameTag, SceneRootBuilderData settings, SceneRootBuilderData arSceneContent, Action<bool> callback = null)
         {
             callback.Invoke(true);
         }
 
         #region Previous Settings
 
-        public static void SetPreviousEventCamSettings(SceneEventCameraSettings sceneEventCameraSettings)
+        public static void SetPreviousEventCamSettings(SceneCameraData.SerializableCameraData sceneEventCameraSettings)
         {
-            previousEventCameraSettings = sceneEventCameraSettings;
+            serializableCameraData = sceneEventCameraSettings;
         }
 
-        public static SceneEventCameraSettings GetPreviousEventCamSettings()
+        public static SceneCameraData.SerializableCameraData GetPreviousEventCamSettings()
         {
-            return previousEventCameraSettings;
+            return serializableCameraData;
         }
 
         #endregion

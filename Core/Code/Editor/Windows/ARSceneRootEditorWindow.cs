@@ -2,8 +2,8 @@ using System;
 using UnityEngine;
 using UnityEditor;
 using Bridge.Core.App.AR.Manager;
+using Bridge.Core.App.Data.Storage;
 using UnityEngine.XR.ARFoundation;
-using Bridge.App.Serializations.Manager;
 
 namespace Bridge.Core.UnityEditor.AR.Manager
 {
@@ -74,7 +74,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         #region Window Settings
 
         private static bool addCustomSceneRootContent;
-        private static ARSceneRootObject arSceneRootSettings;
+        private static SceneRootObject sceneRootObject;
 
         #region Storage Data
 
@@ -159,7 +159,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         private void InitializeContentData()
         {
-            arSceneRootSettings = CreateInstance<ARSceneRootObject>();
+            sceneRootObject = CreateInstance<SceneRootObject>();
         }
 
         #endregion
@@ -237,7 +237,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             if (addCustomSceneRootContent)
             {
-                SerializedObject arSceneContentSerializedObject = new SerializedObject(arSceneRootSettings);
+                SerializedObject arSceneContentSerializedObject = new SerializedObject(sceneRootObject);
                 SerializedProperty arSceneContentSerializedObjectProperty = arSceneContentSerializedObject.FindProperty("content");
                 EditorGUILayout.PropertyField(arSceneContentSerializedObjectProperty, true);
                 arSceneContentSerializedObject.ApplyModifiedProperties();
@@ -245,7 +245,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             GUILayout.Space(10);
 
-            SerializedObject sceneRootSerializedObject = new SerializedObject(arSceneRootSettings);
+            SerializedObject sceneRootSerializedObject = new SerializedObject(sceneRootObject);
             SerializedProperty sceneRootSerializedObjectProperty = sceneRootSerializedObject.FindProperty("settings");
             EditorGUILayout.PropertyField(sceneRootSerializedObjectProperty, true);
             sceneRootSerializedObject.ApplyModifiedProperties();
@@ -258,7 +258,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             {
                 if (GUILayout.Button("Create AR Scene Root", GUILayout.Height(45)))
                 {
-                    OnRootBuilderCreateAction(arSceneRootSettings.settings, arSceneRootSettings.content);
+                    CreateARSceneRoot(sceneRootObject);
                 }
             }
 
@@ -266,7 +266,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             {
                 if (GUILayout.Button("Update AR Scene Root", GUILayout.Height(45)))
                 {
-                    OnRootBuilderUpdateAction(arSceneRootSettings.settings, arSceneRootSettings.content);
+                    OnRootBuilderUpdateAction(sceneRootObject.content, sceneRootObject.content);
                 }
             }
 
@@ -274,19 +274,30 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             {
                 if (GUILayout.Button("Remove Created Root", GUILayout.Height(45)))
                 {
-                    OnRootBuilderRemoveAction(arSceneRootSettings.settings, arSceneRootSettings.content);
+                    OnRootBuilderRemoveAction(sceneRootObject.content, sceneRootObject.content);
                 }
             }
 
             EditorGUILayout.EndHorizontal();
 
-            Storage.JsonData.StorageDataFileExist(storageDataInfo, (loadedFileData, filesCallBackResults) => 
+            Storage.Directory.DataPathExists(storageDataInfo, (loadedFileData, filesCallBackResults) => 
             {
                 if(filesCallBackResults.success == true)
                 {
                     if (GUILayout.Button("Open Saved File Location", GUILayout.Height(45)))
                     {
                         EditorUtility.RevealInFinder(loadedFileData.filePath);
+                    }
+
+                    if (GUILayout.Button("Delete Saved File", GUILayout.Height(45)))
+                    {
+                        Storage.Directory.DeleteDirectory(storageDataInfo, callBackResults =>
+                        {
+                            if (callBackResults.success == true)
+                            {
+                                UnityEngine.Debug.Log(callBackResults.successValue);
+                            }
+                        });
                     }
                 }
             });
@@ -296,13 +307,22 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         #region Root Builder Actions
 
-        private void OnRootBuilderCreateAction(ARSceneRootSettings rootSettings, ARSceneRootContent content)
+        /// <summary>
+        /// This functions creates a new ar scene root.
+        /// </summary>
+        /// <param name="sceneRootObject"></param>
+        private void CreateARSceneRoot(SceneRootObject sceneRootObject)
         {
-            if (FindObjectOfType<ARSceneRoot>()) return;
+            if (FindObjectOfType<ARSceneRoot>())
+            {
+                UnityEngine.Debug.LogWarning("-->> A scene root aready exists in the current scene.");
+                
+                return;
+            }
 
-            string name = string.IsNullOrEmpty(arSceneRootSettings.content.nameTag) ? "_3ridge AR Scene Root" : arSceneRootSettings.content.nameTag;
+            sceneRootObject.content.nameTag = string.IsNullOrEmpty(ARSceneRootEditorWindow.sceneRootObject.content.nameTag) ? "_3ridge AR Scene Root" : ARSceneRootEditorWindow.sceneRootObject.content.nameTag;
 
-            ARSceneRootEditor.CreateNewARSceneRoot(name, rootSettings, content, (createdSettings, results) =>
+            ARSceneRootEditor.CreateARSceneRoot(sceneRootObject, (createdSettings, results) =>
             {
                 if(results.error)
                 {
@@ -317,7 +337,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                         if(savedDataResults.error == true)
                         {
                             UnityEngine.Debug.LogWarning(savedDataResults.errorValue);
-                            return;
                         }
 
                         if(savedDataResults.success == true)
@@ -327,15 +346,14 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                     });
                 }
 
-                if (rootSettings.focusHandler == null) return;
+                if (sceneRootObject == null) return;
 
-                string path = EditorUtility.SaveFilePanelInProject("Save AR Focus Asset", name, "asset", "Save Created AR Scene Focus Asset");
+                //string path = EditorUtility.SaveFilePanelInProject("Save AR Focus Asset", name, "asset", "Save Created AR Scene Focus Asset");
 
-                if (string.IsNullOrEmpty(path)) return;
+                //if (string.IsNullOrEmpty(path)) return;
             });
         }
-
-        private void OnRootBuilderUpdateAction(ARSceneRootSettings rootSettings, ARSceneRootContent? content = null)
+        private void OnRootBuilderUpdateAction(SceneRootBuilderData rootSettings, SceneRootBuilderData? content = null)
         {
             UnityEngine.Debug.Log("-->> Attempting To Update Root");
 
@@ -344,7 +362,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 UnityEngine.Debug.Log("-->> Root Updated");
             });
         }
-        private void OnRootBuilderRemoveAction(ARSceneRootSettings rootSettings, ARSceneRootContent? content = null)
+        private void OnRootBuilderRemoveAction(SceneRootBuilderData rootSettings, SceneRootBuilderData? content = null)
         {
             RemoveSceneRoot(removed =>
             {
@@ -357,81 +375,69 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         #endregion
 
-        private static void RemoveSceneRoot(Action<bool> callback)
+        private void RemoveSceneRoot(Action<bool> callback)
         {
             if (FindObjectOfType<ARSceneRoot>() == null) return;
 
             #region Load AR Scene Event Camera data
 
-            //Storage.JsonFiles.Load(storageDataInfo,  )
+            if(storageDataInfo.isLoaded)
+            {
+                ARSceneRootEditor.SetPreviousEventCamSettings(LoadSceneObjectData());
 
-            // Storage.JsonFiles.Load(storageDataInfo, );
+                //if (ARSceneRootEditor.GetPreviousEventCamSettings().useExistingCamera)
+                //{
+                //    Camera arCam = ARSceneRootEditor.arSceneEventCamera;
+                //    arCam.name = ARSceneRootEditor.GetPreviousEventCamSettings().nameTag;
+                //    arCam.clearFlags = ARSceneRootEditor.GetPreviousEventCamSettings().clearFlags;
+                //    arCam.cullingMask = ARSceneRootEditor.GetPreviousEventCamSettings().cullingMask;
+                //    arCam.backgroundColor = ARSceneRootEditor.GetPreviousEventCamSettings().backgroundColor;
 
-            //if (ARSceneRootEditor.usedExistingSceneEventCamera)
-            //{
-            //    Camera arCam = ARSceneRootEditor.arSceneEventCamera;
-            //    arCam.name = ARSceneRootEditor.GetPreviousEventCamSettings().nameTag;
+                //    arCam.fieldOfView = ARSceneRootEditor.GetPreviousEventCamSettings().fieldOfView;
+                //    arCam.nearClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().nearClipPlane;
+                //    arCam.farClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().farClipPlane;
+                //    StorageData.DirectoryInfoData directoryInfoData = new StorageData.DirectoryInfoData();
+                //    directoryInfoData.sceneAssetPath = LoadSceneObjectData().sceneAssetPath;
 
-            //    arCam.clearFlags = ARSceneRootEditor.GetPreviousEventCamSettings().clearFlags;
-            //    arCam.cullingMask = ARSceneRootEditor.GetPreviousEventCamSettings().cullingMask;
-            //    arCam.backgroundColor = ARSceneRootEditor.GetPreviousEventCamSettings().backgroundColor;
+                //    Storage.AssetData.LoadSceneAsset(directoryInfoData, (loadedParent, callBackResults) =>
+                //    {
+                //        arCam.transform.SetParent((Transform)loadedParent, false);
+                //    });
 
-            //    arCam.cameraType = ARSceneRootEditor.GetPreviousEventCamSettings().cameraType;
-            //    arCam.usePhysicalProperties = ARSceneRootEditor.GetPreviousEventCamSettings().usePhysicalProperties;
+                //    arCam.transform.localPosition = StorageData.SerializableData.Vector3(ARSceneRootEditor.GetPreviousEventCamSettings().serializablePosition);
+                //    arCam.transform.localRotation = StorageData.SerializableData.Quaternion(ARSceneRootEditor.GetPreviousEventCamSettings().serializableRotation);
 
-            //    arCam.fieldOfView = ARSceneRootEditor.GetPreviousEventCamSettings().fieldOfView;
-            //    arCam.nearClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().nearClipPlane;
-            //    arCam.farClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().farClipPlane;
-
-            //    // arCam.transform.SetParent(ARSceneRootEditor.GetPreviousEventCamSettings().parent, false);
-
-            //    arCam.transform.localPosition = new Vector3(ARSceneRootEditor.GetPreviousEventCamSettings().position.x, ARSceneRootEditor.GetPreviousEventCamSettings().position.y, ARSceneRootEditor.GetPreviousEventCamSettings().position.z);
-            //    arCam.transform.localRotation = new Quaternion(ARSceneRootEditor.GetPreviousEventCamSettings().rotation.x, ARSceneRootEditor.GetPreviousEventCamSettings().rotation.y, ARSceneRootEditor.GetPreviousEventCamSettings().rotation.z, ARSceneRootEditor.GetPreviousEventCamSettings().rotation.w);
-
-            //    if (arCam.gameObject.GetComponent<ARPoseDriver>()) DestroyImmediate(arCam.gameObject.GetComponent<ARPoseDriver>());
-            //    if (arCam.gameObject.GetComponent<ARCameraBackground>()) DestroyImmediate(arCam.gameObject.GetComponent<ARCameraBackground>());
-            //    if(arCam.gameObject.GetComponent<ARCameraManager>()) DestroyImmediate(arCam.gameObject.GetComponent<ARCameraManager>());
-            //}
+                //    if (arCam.gameObject.GetComponent<ARPoseDriver>()) DestroyImmediate(arCam.gameObject.GetComponent<ARPoseDriver>());
+                //    if (arCam.gameObject.GetComponent<ARCameraBackground>()) DestroyImmediate(arCam.gameObject.GetComponent<ARCameraBackground>());
+                //    if (arCam.gameObject.GetComponent<ARCameraManager>()) DestroyImmediate(arCam.gameObject.GetComponent<ARCameraManager>());
+                //}
+            }
 
             #endregion
 
             #region AR Scene Light
 
-            if (ARSceneRootEditor.usedExistingSceneLight)
-            {
-
-            }
-
             #endregion
 
             #region Delete AR Scene Root Object
 
-            //DeleteARSceneRoot(FindObjectOfType<ARSceneRoot>().gameObject, deletedSuccessfully => 
-            //{
-            //    if(deletedSuccessfully == false)
-            //    {
-            //        UnityEngine.Debug.LogError($"-->> <color=orange>AR Scene Root Delete Failed : </color> <color=white>AR scene root content failed to delete.</color>");
-            //        return;
-            //    }
-
-            //    //DeleteSettingsData((directory, deleted) =>
-            //    //{
-            //    //    if (deleted == false)
-            //    //    {
-            //    //        UnityEngine.Debug.LogError($"-->> <color=orange>Directory Removal Failed : </color> <color=white>AR root config settings failed to delete directory : </color><color=cyan>{directory}.</color>");
-            //    //        return;
-            //    //    }
-
-            //    //    if (deleted == true)
-            //    //    {
-            //    //        UnityEngine.Debug.Log($"-->> <color=green>Directory Removed Successfully : </color><color=white>AR root config settings deleted successfully from directory :</color> <color=cyan>{directory}</color>");
-            //    //    }
-            //    //});
-            //});
+            DeleteARSceneRoot(FindObjectOfType<ARSceneRoot>().gameObject, deleted =>
+            {
+                if (deleted == false)
+                {
+                    UnityEngine.Debug.LogError($"-->> <color=orange>AR Scene Root Delete Failed : </color> <color=white>AR scene root content failed to delete.</color>");
+                    return;
+                }
+            });
 
             #endregion
         }
 
+        /// <summary>
+        /// This is an action call back function for deleting scene root objects.
+        /// </summary>
+        /// <param name="sceneContent"></param>
+        /// <param name="callback"></param>
         private static void DeleteARSceneRoot(GameObject sceneContent, Action<bool> callback)
         {
             DestroyImmediate(sceneContent);
@@ -445,6 +451,41 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 callback.Invoke(false);
             }
         }
+
+        #region Serilaizations
+
+        private SceneCameraData.SerializableCameraData LoadSceneObjectData()
+        {
+            var sceneCameraData = new SceneCameraData.SerializableCameraData();
+
+            Storage.Directory.DataPathExists(storageDataInfo, (loadedFileData, filesCallBackResults) =>
+            {
+                if (filesCallBackResults.success == true)
+                {
+                    Storage.JsonData.Load<SceneCameraData.SerializableCameraData>(loadedFileData, (loadedDataResults, callBackResults) =>
+                    {
+                        if (callBackResults.error)
+                        {
+                            UnityEngine.Debug.LogError(callBackResults.errorValue);
+                            return;
+                        }
+
+                        if (callBackResults.success)
+                        {
+                            UnityEngine.Debug.Log(callBackResults.successValue);
+
+                            sceneCameraData = loadedDataResults;
+                        }
+                    });
+
+                    storageDataInfo.isLoaded = filesCallBackResults.success;
+                }
+            });
+
+            return sceneCameraData;
+        }
+
+        #endregion
 
         #endregion
     }

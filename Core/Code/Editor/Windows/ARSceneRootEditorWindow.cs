@@ -4,6 +4,7 @@ using UnityEditor;
 using Bridge.Core.App.AR.Manager;
 using Bridge.Core.App.Data.Storage;
 using UnityEngine.XR.ARFoundation;
+using Bridge.Core.Debug;
 
 namespace Bridge.Core.UnityEditor.AR.Manager
 {
@@ -172,7 +173,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         private void OnWindowUpdates()
         {
             DrawLayouts();
-            DrawSettingsLayout();
+            OnEditorWindowUpdate();
         }
 
         private void DrawLayouts()
@@ -220,7 +221,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             #endregion
         }
 
-        private void DrawSettingsLayout()
+        private void OnEditorWindowUpdate()
         {
             GUILayout.BeginArea(settingsSectionContentRect);
             GUILayout.Space(25);
@@ -313,45 +314,47 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         /// <param name="sceneRootObject"></param>
         private void CreateARSceneRoot(SceneRootObject sceneRootObject)
         {
-            if (FindObjectOfType<ARSceneRoot>())
+            try
             {
-                UnityEngine.Debug.LogWarning("-->> A scene root aready exists in the current scene.");
-                
-                return;
-            }
-
-            sceneRootObject.content.nameTag = string.IsNullOrEmpty(ARSceneRootEditorWindow.sceneRootObject.content.nameTag) ? "_3ridge AR Scene Root" : ARSceneRootEditorWindow.sceneRootObject.content.nameTag;
-
-            ARSceneRootEditor.CreateARSceneRoot(sceneRootObject, (createdSettings, results) =>
-            {
-                if(results.error)
+                if (FindObjectOfType<ARSceneRoot>())
                 {
-                    UnityEngine.Debug.LogWarning(results.errorValue);
+                    DebugConsole.Log(LogLevel.Warning, this, "A scene root aready exists in the current scene.");
                     return;
                 }
 
-                if (results.success == true)
+                sceneRootObject.content.nameTag = string.IsNullOrEmpty(ARSceneRootEditorWindow.sceneRootObject.content.nameTag) ? "_3ridge AR Scene Root" : ARSceneRootEditorWindow.sceneRootObject.content.nameTag;
+
+                ARSceneRootEditor.CreateARSceneRoot(sceneRootObject, (createdSettings, results) =>
                 {
-                    Storage.JsonData.Save(storageDataInfo, createdSettings, (savedDataResults) =>
+                    if (results.error)
                     {
-                        if(savedDataResults.error == true)
+                        UnityEngine.Debug.LogWarning(results.errorValue);
+                        return;
+                    }
+
+                    if (results.success == true)
+                    {
+                        Storage.JsonData.Save(storageDataInfo, createdSettings, (savedDataResults) =>
                         {
-                            UnityEngine.Debug.LogWarning(savedDataResults.errorValue);
-                        }
+                            if (savedDataResults.error == true)
+                            {
+                                DebugConsole.Log(LogLevel.Error, savedDataResults.errorValue);
+                            }
 
-                        if(savedDataResults.success == true)
-                        {
-                            UnityEngine.Debug.Log(savedDataResults.successValue);
-                        }
-                    });
-                }
+                            if (savedDataResults.success == true)
+                            {
+                                DebugConsole.Log(LogLevel.Success, savedDataResults.successValue);
+                            }
+                        });
+                    }
 
-                if (sceneRootObject == null) return;
-
-                //string path = EditorUtility.SaveFilePanelInProject("Save AR Focus Asset", name, "asset", "Save Created AR Scene Focus Asset");
-
-                //if (string.IsNullOrEmpty(path)) return;
-            });
+                    if (sceneRootObject == null) return;
+                });
+            }
+            catch(Exception exception)
+            {
+                throw exception;
+            }
         }
         private void OnRootBuilderUpdateAction(SceneRootBuilderData rootSettings, SceneRootBuilderData? content = null)
         {

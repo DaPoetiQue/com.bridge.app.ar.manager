@@ -45,6 +45,33 @@ namespace Bridge.Core.App.AR.Manager
 
     #region Camera Data
 
+
+    /// <summary>
+    /// This class contains data for a ar camera.
+    /// </summary>
+    public static class ARCamera
+    {
+        /// <summary>
+        /// Converts and returns a ar camera.
+        /// </summary>
+        /// <param name="camera"></param>
+        /// <returns></returns>
+        public static Camera GetSettings(Camera camera)
+        {
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.cameraType = CameraType.Game;
+            camera.backgroundColor = Color.black;
+            camera.nearClipPlane = 0.1f;
+            camera.farClipPlane = 20;
+
+            camera.gameObject.AddComponent<ARCameraManager>();
+            camera.gameObject.AddComponent<ARPoseDriver>();
+            camera.gameObject.AddComponent<ARCameraBackground>();
+
+            return camera;
+        }
+    }
+
     /// <summary>
     /// This class holds both serializable and non serializable camera data.
     /// </summary>

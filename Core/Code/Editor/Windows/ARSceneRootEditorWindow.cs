@@ -435,6 +435,12 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             PlayerSettings.productName = (string.IsNullOrEmpty(buildSettings.appInfo.appName)) ? PlayerSettings.productName : buildSettings.appInfo.appName;
             PlayerSettings.bundleVersion = (string.IsNullOrEmpty(buildSettings.appInfo.appVersion)) ? PlayerSettings.bundleVersion : buildSettings.appInfo.appVersion;
 
+            string companyName = buildSettings.appInfo.companyName.Replace("", "");
+            string productName = buildSettings.appInfo.appName.Replace("", "");
+            string identifier = $"com.{companyName}.{productName}";
+
+            PlayerSettings.applicationIdentifier = identifier;
+
             switch (buildSettings.configurations.allowedOrientation)
             {
                 case App.AR.Manager.DeviceOrientation.Portrait:

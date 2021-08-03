@@ -259,7 +259,34 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             {
                 if (GUILayout.Button("Create AR Scene Root", GUILayout.Height(45)))
                 {
-                    CreateARSceneRoot(sceneRootObject);
+                    if(FindObjectOfType<Camera>() == true && sceneRootObject.content.createRootCamera == false)
+                    {
+                        if (EditorUtility.DisplayDialog("A Camera Aready Exist", $"Do you want to use the existing camera as a AR root scene camera?.", "Use Existing", "Create New"))
+                        {
+                            bool state = sceneRootObject.content.createRootCamera;
+                            sceneRootObject.content.createRootCamera = false;
+                            CreateARSceneRoot(sceneRootObject);
+                            sceneRootObject.content.createRootCamera = state;
+                        }
+                        else
+                        {
+                            bool state = sceneRootObject.content.createRootCamera;
+                            sceneRootObject.content.createRootCamera = true;
+                            CreateARSceneRoot(sceneRootObject);
+                            sceneRootObject.content.createRootCamera = state;
+                        }
+                    }
+                    else if(FindObjectOfType<Camera>() == false  && sceneRootObject.content.createRootCamera == false)
+                    {
+                        bool state = sceneRootObject.content.createRootCamera;
+                        sceneRootObject.content.createRootCamera = true;
+                        CreateARSceneRoot(sceneRootObject);
+                        sceneRootObject.content.createRootCamera = state;
+                    }
+                    else
+                    {
+                        CreateARSceneRoot(sceneRootObject);
+                    }
                 }
             }
 
@@ -267,7 +294,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             {
                 if (GUILayout.Button("Update AR Scene Root", GUILayout.Height(45)))
                 {
-                    OnRootBuilderUpdateAction(sceneRootObject.content, sceneRootObject.content);
+                    // OnRootBuilderUpdateAction(sceneRootObject.content, sceneRootObject.content);
                 }
             }
 
@@ -312,13 +339,13 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         /// This functions creates a new ar scene root.
         /// </summary>
         /// <param name="sceneRootObject"></param>
-        private void CreateARSceneRoot(SceneRootObject sceneRootObject)
+        public static void CreateARSceneRoot(SceneRootObject sceneRootObject)
         {
             try
             {
                 if (FindObjectOfType<ARSceneRoot>())
                 {
-                    DebugConsole.Log(LogLevel.Warning, this, "A scene root aready exists in the current scene.");
+                    DebugConsole.Log(LogLevel.Warning, "A scene root aready exists in the current scene.");
                     return;
                 }
 
@@ -328,7 +355,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 {
                     if (results.error)
                     {
-                        UnityEngine.Debug.LogWarning(results.errorValue);
+                        DebugConsole.Log(LogLevel.Error, results.errorValue);
                         return;
                     }
 

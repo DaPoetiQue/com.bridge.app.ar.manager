@@ -136,9 +136,6 @@ namespace Bridge.Core.App.AR.Manager
         public LightEstimation estimatedLighting;
 
         [Space(5)]
-        public LightType sceneLightType;
-
-        [Space(5)]
         public LightShadows lightShadowType;
 
         #endregion

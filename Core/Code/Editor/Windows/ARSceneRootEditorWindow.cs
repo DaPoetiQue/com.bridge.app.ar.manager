@@ -22,7 +22,8 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         private static void OpenARManagerEditor()
         {
             window = GetWindow<ARSceneRootEditorWindow>("AR Content Editor");
-            window.minSize = new Vector2(400, 350);
+            window.minSize = new Vector2(400, 300);
+            window.maxSize = new Vector2(500, 600);
 
             window.Show();
         }
@@ -61,6 +62,12 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         private GUIStyle settingsHeaderStyle = new GUIStyle();
         private GUIStyle settingContentStyle = new GUIStyle();
+
+        #endregion
+
+        #region Data
+
+        private static Vector2 scrollPosition;
 
         #endregion
 
@@ -182,7 +189,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             headerSectionRect.x = 0;
             headerSectionRect.y = 0;
-            headerSectionRect.width = Screen.width;
+            headerSectionRect.width = window.position.width;
             headerSectionRect.height = 100;
             GUI.DrawTexture(headerSectionRect, headerSectionTexture);
 
@@ -204,17 +211,17 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             settingsSectionRect.x = 0;
             settingsSectionRect.y = headerSectionRect.height;
-            settingsSectionRect.width = Screen.width;
-            settingsSectionRect.height = Screen.height - headerSectionRect.height;
+            settingsSectionRect.width = window.position.width;
+            settingsSectionRect.height = window.position.height - headerSectionRect.height;
 
-            GUI.DrawTexture(settingsSectionRect, settingsSectionTexture);
+            GUI.DrawTexture(settingsSectionRect, settingsSectionTexture, ScaleMode.ScaleToFit);
 
-            float settingsSectionContentX = Screen.width - (Screen.width / 4);
-
-            settingsSectionContentRect.x = 15;
+            settingsSectionContentRect.x = 0;
             settingsSectionContentRect.y = settingsSectionRect.y;
-            settingsSectionContentRect.width = settingsSectionContentX;
+            settingsSectionContentRect.width = settingsSectionRect.width;
             settingsSectionContentRect.height = settingsSectionRect.height;
+
+            // settingsSectionContentRect
 
             GUI.DrawTexture(settingsSectionContentRect, settingsSectionContentTexture);
 
@@ -223,11 +230,21 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         private void OnEditorWindowUpdate()
         {
-            GUILayout.BeginArea(settingsSectionContentRect);
-            GUILayout.Space(25);
+            GUILayout.BeginArea(settingsSectionRect);
 
-            GUILayout.Label("This Tool Creates AR Scene Root Templates.");
-            GUILayout.Space(15);
+            GUILayout.BeginVertical();
+
+            GUIStyle style = new GUIStyle();
+            style.padding = new RectOffset(10, 10, 25, 25);
+
+            var layout = new GUILayoutOption[2];
+            layout[0] = GUILayout.Width(settingsSectionRect.width);
+            layout[1] = GUILayout.ExpandHeight(true);
+
+
+            GUILayout.ExpandHeight(true);
+
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, style ,layout);
 
             GUILayout.BeginHorizontal();
 
@@ -235,6 +252,8 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             addCustomSceneRootContent = EditorGUILayout.Toggle(addCustomSceneRootContent);
 
             GUILayout.EndHorizontal();
+
+            GUILayout.Space(10);
 
             if (addCustomSceneRootContent)
             {
@@ -259,14 +278,24 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             {
                 if (GUILayout.Button("Create AR Scene Root", GUILayout.Height(45)))
                 {
-                    if(FindObjectOfType<Camera>() == true && sceneRootObject.content.createRootCamera == false)
+                    if(EditorUserBuildSettings.activeBuildTarget == BuildTarget.Android || EditorUserBuildSettings.activeBuildTarget == BuildTarget.iOS)
                     {
-                        if (EditorUtility.DisplayDialog("A Camera Aready Exist", $"Do you want to use the existing camera as a AR root scene camera?.", "Use Existing", "Create New"))
+                        if (FindObjectOfType<Camera>() == true)
                         {
-                            bool state = sceneRootObject.content.createRootCamera;
-                            sceneRootObject.content.createRootCamera = false;
-                            CreateARSceneRoot(sceneRootObject);
-                            sceneRootObject.content.createRootCamera = state;
+                            if (EditorUtility.DisplayDialog("A Camera Aready Exist", $"Do you want to use the existing camera as a AR root scene camera?.", "Use Existing", "Create New"))
+                            {
+                                bool state = sceneRootObject.content.createRootCamera;
+                                sceneRootObject.content.createRootCamera = false;
+                                CreateARSceneRoot(sceneRootObject);
+                                sceneRootObject.content.createRootCamera = state;
+                            }
+                            else
+                            {
+                                bool state = sceneRootObject.content.createRootCamera;
+                                sceneRootObject.content.createRootCamera = true;
+                                CreateARSceneRoot(sceneRootObject);
+                                sceneRootObject.content.createRootCamera = state;
+                            }
                         }
                         else
                         {
@@ -276,16 +305,18 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                             sceneRootObject.content.createRootCamera = state;
                         }
                     }
-                    else if(FindObjectOfType<Camera>() == false  && sceneRootObject.content.createRootCamera == false)
-                    {
-                        bool state = sceneRootObject.content.createRootCamera;
-                        sceneRootObject.content.createRootCamera = true;
-                        CreateARSceneRoot(sceneRootObject);
-                        sceneRootObject.content.createRootCamera = state;
-                    }
                     else
                     {
-                        CreateARSceneRoot(sceneRootObject);
+                        if (EditorUtility.DisplayDialog("Build Target Not Supported", "Switch to a supported target platform.", "Switch", "Cancel"))
+                        {
+                            EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, BuildTarget.Android);
+
+                            DebugConsole.Log(LogLevel.Debug, "Switching to available supported platform.");
+                        }
+                        else
+                        {
+                            DebugConsole.Log(LogLevel.Warning, "Build target switch canceled. AR builder not created.");
+                        }
                     }
                 }
             }
@@ -308,27 +339,9 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             EditorGUILayout.EndHorizontal();
 
-            Storage.Directory.DataPathExists(storageDataInfo, (loadedFileData, filesCallBackResults) => 
-            {
-                if(filesCallBackResults.success == true)
-                {
-                    if (GUILayout.Button("Open Saved File Location", GUILayout.Height(45)))
-                    {
-                        EditorUtility.RevealInFinder(loadedFileData.filePath);
-                    }
+            EditorGUILayout.EndScrollView();
 
-                    if (GUILayout.Button("Delete Saved File", GUILayout.Height(45)))
-                    {
-                        Storage.Directory.DeleteDirectory(storageDataInfo, callBackResults =>
-                        {
-                            if (callBackResults.success == true)
-                            {
-                                UnityEngine.Debug.Log(callBackResults.successValue);
-                            }
-                        });
-                    }
-                }
-            });
+            GUILayout.EndVertical();
 
             GUILayout.EndArea();
         }
@@ -357,22 +370,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                     {
                         DebugConsole.Log(LogLevel.Error, results.errorValue);
                         return;
-                    }
-
-                    if (results.success == true)
-                    {
-                        Storage.JsonData.Save(storageDataInfo, createdSettings, (savedDataResults) =>
-                        {
-                            if (savedDataResults.error == true)
-                            {
-                                DebugConsole.Log(LogLevel.Error, savedDataResults.errorValue);
-                            }
-
-                            if (savedDataResults.success == true)
-                            {
-                                DebugConsole.Log(LogLevel.Success, savedDataResults.successValue);
-                            }
-                        });
                     }
 
                     if (sceneRootObject == null) return;
@@ -413,7 +410,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             if(storageDataInfo.isLoaded)
             {
-                ARSceneRootEditor.SetPreviousEventCamSettings(LoadSceneObjectData());
+               // ARSceneRootEditor.SetPreviousEventCamSettings(LoadSceneObjectData());
 
                 //if (ARSceneRootEditor.GetPreviousEventCamSettings().useExistingCamera)
                 //{
@@ -481,41 +478,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 callback.Invoke(false);
             }
         }
-
-        #region Serilaizations
-
-        private SceneCameraData.SerializableCameraData LoadSceneObjectData()
-        {
-            var sceneCameraData = new SceneCameraData.SerializableCameraData();
-
-            Storage.Directory.DataPathExists(storageDataInfo, (loadedFileData, filesCallBackResults) =>
-            {
-                if (filesCallBackResults.success == true)
-                {
-                    Storage.JsonData.Load<SceneCameraData.SerializableCameraData>(loadedFileData, (loadedDataResults, callBackResults) =>
-                    {
-                        if (callBackResults.error)
-                        {
-                            UnityEngine.Debug.LogError(callBackResults.errorValue);
-                            return;
-                        }
-
-                        if (callBackResults.success)
-                        {
-                            UnityEngine.Debug.Log(callBackResults.successValue);
-
-                            sceneCameraData = loadedDataResults;
-                        }
-                    });
-
-                    storageDataInfo.isLoaded = filesCallBackResults.success;
-                }
-            });
-
-            return sceneCameraData;
-        }
-
-        #endregion
 
         #endregion
     }

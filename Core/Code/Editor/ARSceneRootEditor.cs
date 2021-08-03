@@ -62,6 +62,9 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             { 
                 if(results.error)
                 {
+                    callBackResults.error = true;
+                    callBackResults.errorValue = results.errorValue;
+
                     DebugConsole.Log(LogLevel.Error, results.errorValue);
                 }
 
@@ -69,6 +72,10 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 {
                     camera.transform.SetParent(sessionOrigin.transform, false);
                     sessionOrigin.camera = camera;
+
+                    callBackResults.success = true;
+                    callBackResults.successValue = results.successValue;
+
                     DebugConsole.Log(LogLevel.Success, results.successValue);
                 }
             });
@@ -81,7 +88,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             arSceneLight.AddComponent<ARSceneLight>();
             arSceneLight.transform.SetParent(sessionOrigin.transform);
             Light sceneLight = arSceneLight.AddComponent<Light>();
-            sceneLight.type = sceneRootObject.settings.sceneLightType;
             //sceneLight.shadowNearPlane = sceneEventCam.nearClipPlane;
             sceneLight.shadows = sceneRootObject.settings.lightShadowType;
 
@@ -108,12 +114,19 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                     {
                         if (createCameraResults.error == true)
                         {
+                            callBackResults.error = createCameraResults.error;
+                            callBackResults.errorValue = createCameraResults.errorValue;
+
                             DebugConsole.Log(LogLevel.Error, createCameraResults.errorValue);
                         }
 
-                        if(createCameraResults.success)
+                        if(createCameraResults.success == true)
                         {
                             createdCamera = ARCamera.GetSettings(createdCamera);
+
+                            callBackResults.success = createCameraResults.success;
+                            callBackResults.successValue = createCameraResults.successValue;
+
                             DebugConsole.Log(LogLevel.Success, createCameraResults.successValue);
                         }
 

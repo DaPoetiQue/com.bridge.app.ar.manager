@@ -29,6 +29,9 @@ namespace Bridge.Core.App.AR.Manager
 
         [Space(5)]
         public BuildConfig configurations;
+
+        [Space(5)]
+        public AndroidBuildSettings androidSettings;
     }
 
 
@@ -73,15 +76,21 @@ namespace Bridge.Core.App.AR.Manager
         public bool developmentBuild;
 
         [HideInInspector]
-        public bool buildAppBundle;
-
-        [HideInInspector]
-        public string buildLocation;
-
-        [HideInInspector]
-        public AndroidPreferredInstallLocation installLocation;
+        public string buildLocation; 
     }
 
+    [Serializable]
+    public struct AndroidBuildSettings
+    {
+        [Space(5)]
+        public AndroidPreferredInstallLocation installLocation;
+
+        [Space(5)]
+        public AndroidSdkVersions SdkVersion;
+
+        [Space(5)]
+        public bool buildAppBundle;
+    }
   
     #endregion
 

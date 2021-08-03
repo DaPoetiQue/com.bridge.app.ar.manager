@@ -177,6 +177,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             // If config not loaded. set default settings.
             appSettings.appInfo.appVersion = "1.0";
             appSettings.configurations.platform = BuildTarget.Android; // This will be loaded from a json file called buildSettings.json
+            appSettings.androidSettings.SdkVersion = AndroidSdkVersions.AndroidApiLevel24;
 
             // This will be loaded from a json file called sceneSetup.json
             sceneRootObject = CreateInstance<SceneRootObject>();
@@ -271,20 +272,17 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             EditorGUILayout.PropertyField(appConfigSerializedObjectProperty, true);
             appConfigSerializedObject.ApplyModifiedProperties();
 
-            if(appSettings.configurations.platform == BuildTarget.Android)
+            GUILayout.Space(10);
+
+            if (appSettings.configurations.platform == BuildTarget.Android)
             {
-                GUILayout.Space(15);
-
-                installLocation = (AndroidPreferredInstallLocation)EditorGUILayout.EnumPopup("Install Location", installLocation);
-
-                GUILayout.Space(10);
-                appSettings.configurations.installLocation = installLocation;
-
-                buildAppBundle = EditorGUILayout.Toggle("Build Android Bundle", buildAppBundle);
-                appSettings.configurations.buildAppBundle = buildAppBundle;
+                SerializedObject androidConfigSerializedObject = new SerializedObject(appSettings);
+                SerializedProperty androidConfigSerializedObjectProperty = androidConfigSerializedObject.FindProperty("androidSettings");
+                EditorGUILayout.PropertyField(androidConfigSerializedObjectProperty, true);
+                androidConfigSerializedObject.ApplyModifiedProperties();
             }
 
-            GUILayout.Space(15);
+            GUILayout.Space(10);
 
             GUILayout.BeginHorizontal();
 
@@ -465,11 +463,12 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
                 PlayerSettings.SetMobileMTRendering(BuildTargetGroup.Android, false);
 
+                PlayerSettings.Android.minSdkVersion = buildSettings.androidSettings.SdkVersion;
                 PlayerSettings.Android.androidTVCompatibility = false;
-                PlayerSettings.Android.preferredInstallLocation = buildSettings.configurations.installLocation;
+                PlayerSettings.Android.preferredInstallLocation = buildSettings.androidSettings.installLocation;
                 PlayerSettings.Android.ARCoreEnabled = true;
 
-                EditorUserBuildSettings.buildAppBundle = buildSettings.configurations.buildAppBundle;
+                EditorUserBuildSettings.buildAppBundle = buildSettings.androidSettings.buildAppBundle;
             }
         
             EditorUserBuildSettings.allowDebugging = buildSettings.configurations.allowDebugging;

@@ -3,9 +3,88 @@ using System;
 using Bridge.Core.App.Data.Storage;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
+using UnityEditor;
 
 namespace Bridge.Core.App.AR.Manager
 {
+    #region App Info
+
+    public enum RuntimePlatform
+    {
+        Android, iOS
+    }
+
+    public enum DeviceOrientation
+    {
+        LandscapeLeft, LandscapeRight, Portrait, PortraitUpSideDown
+    }
+
+    /// <summary>
+    /// This class contains the app build settings.
+    /// </summary>
+    public class BuildSettings : ScriptableObject
+    {
+        [Space(5)]
+        public AppInfo appInfo;
+
+        [Space(5)]
+        public BuildConfig configurations;
+    }
+
+
+    /// <summary>
+    /// Information about the app.
+    /// </summary>
+    [Serializable]
+    public struct AppInfo
+    {
+        [Space(5)]
+        public string companyName;
+
+        [Space(5)]
+        public string appName;
+
+        [Space(5)]
+        public string appVersion;
+
+        [Space(5)]
+        public Texture2D appIcon;
+
+        [Space(5)]
+        public Sprite splashScreen;
+    }
+
+    /// <summary>
+    /// App build settings.
+    /// </summary>
+    [Serializable]
+    public struct BuildConfig
+    {
+        [Space(5)]
+        public DeviceOrientation allowedOrientation;
+
+        [Space(5)]
+        public BuildTarget platform;
+
+        [Space(5)]
+        public bool allowDebugging;
+
+        [Space(5)]
+        public bool developmentBuild;
+
+        [HideInInspector]
+        public bool buildAppBundle;
+
+        [HideInInspector]
+        public string buildLocation;
+
+        [HideInInspector]
+        public AndroidPreferredInstallLocation installLocation;
+    }
+
+  
+    #endregion
+
     #region Settings
 
     /// <summary>
@@ -14,7 +93,10 @@ namespace Bridge.Core.App.AR.Manager
     [Serializable]
     public class SceneRootObject : ScriptableObject
     {
+        [Space(5)]
         public SceneRootBuilderData content;
+
+        [Space(5)]
         public SceneBuilderLightingSettings settings;
     }
 
@@ -44,7 +126,6 @@ namespace Bridge.Core.App.AR.Manager
     }
 
     #region Camera Data
-
 
     /// <summary>
     /// This class contains data for a ar camera.

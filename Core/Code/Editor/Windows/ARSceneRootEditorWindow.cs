@@ -5,6 +5,7 @@ using Bridge.Core.App.AR.Manager;
 using Bridge.Core.App.Data.Storage;
 using UnityEngine.XR.ARFoundation;
 using Bridge.Core.Debug;
+using UnityEngine.Rendering;
 
 namespace Bridge.Core.UnityEditor.AR.Manager
 {
@@ -79,7 +80,11 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         #endregion
 
-        #region Window Settings
+        #region Settings
+
+        private static BuildSettings appSettings;
+        private static bool buildAppBundle;
+        private static AndroidPreferredInstallLocation installLocation;
 
         private static bool addCustomSceneRootContent;
         private static SceneRootObject sceneRootObject;
@@ -151,7 +156,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             settingsHeaderStyle.padding.top = 40;
             settingsHeaderStyle.padding.left = 50;
             settingsHeaderStyle.alignment = TextAnchor.LowerCenter;
-            settingsHeaderContent.text = "AR Scene Template Builder";
+            settingsHeaderContent.text = "AR ToolKit Master";
 
             #endregion
 
@@ -167,7 +172,16 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         private void InitializeContentData()
         {
+            appSettings = CreateInstance<BuildSettings>();
+
+            // If config not loaded. set default settings.
+            appSettings.appInfo.appVersion = "1.0";
+            appSettings.configurations.platform = BuildTarget.Android; // This will be loaded from a json file called buildSettings.json
+
+            // This will be loaded from a json file called sceneSetup.json
             sceneRootObject = CreateInstance<SceneRootObject>();
+            sceneRootObject.settings.estimatedLighting = LightEstimation.AmbientColor;
+            sceneRootObject.settings.lightShadowType = LightShadows.Hard;
         }
 
         #endregion
@@ -189,7 +203,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             headerSectionRect.x = 0;
             headerSectionRect.y = 0;
-            headerSectionRect.width = window.position.width;
+            headerSectionRect.width = Screen.width;
             headerSectionRect.height = 100;
             GUI.DrawTexture(headerSectionRect, headerSectionTexture);
 
@@ -241,10 +255,36 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             layout[0] = GUILayout.Width(settingsSectionRect.width);
             layout[1] = GUILayout.ExpandHeight(true);
 
-
             GUILayout.ExpandHeight(true);
 
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, style ,layout);
+
+            GUILayout.Space(10);
+            SerializedObject appInfoSerializedObject = new SerializedObject(appSettings);
+            SerializedProperty appInfoSerializedObjectProperty = appInfoSerializedObject.FindProperty("appInfo");
+            EditorGUILayout.PropertyField(appInfoSerializedObjectProperty, true);
+            appInfoSerializedObject.ApplyModifiedProperties();
+
+            GUILayout.Space(10);
+            SerializedObject appConfigSerializedObject = new SerializedObject(appSettings);
+            SerializedProperty appConfigSerializedObjectProperty = appConfigSerializedObject.FindProperty("configurations");
+            EditorGUILayout.PropertyField(appConfigSerializedObjectProperty, true);
+            appConfigSerializedObject.ApplyModifiedProperties();
+
+            if(appSettings.configurations.platform == BuildTarget.Android)
+            {
+                GUILayout.Space(15);
+
+                installLocation = (AndroidPreferredInstallLocation)EditorGUILayout.EnumPopup("Install Location", installLocation);
+
+                GUILayout.Space(10);
+                appSettings.configurations.installLocation = installLocation;
+
+                buildAppBundle = EditorGUILayout.Toggle("Build Android Bundle", buildAppBundle);
+                appSettings.configurations.buildAppBundle = buildAppBundle;
+            }
+
+            GUILayout.Space(15);
 
             GUILayout.BeginHorizontal();
 
@@ -278,7 +318,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             {
                 if (GUILayout.Button("Create AR Scene Root", GUILayout.Height(45)))
                 {
-                    if(EditorUserBuildSettings.activeBuildTarget == BuildTarget.Android || EditorUserBuildSettings.activeBuildTarget == BuildTarget.iOS)
+                    if(EditorUserBuildSettings.activeBuildTarget == appSettings.configurations.platform)
                     {
                         if (FindObjectOfType<Camera>() == true)
                         {
@@ -309,7 +349,20 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                     {
                         if (EditorUtility.DisplayDialog("Build Target Not Supported", "Switch to a supported target platform.", "Switch", "Cancel"))
                         {
-                            EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, BuildTarget.Android);
+                            switch(appSettings.configurations.platform)
+                            {
+                                case BuildTarget.Android:
+
+                                    EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, appSettings.configurations.platform);
+
+                                    break;
+
+                                case BuildTarget.iOS:
+
+                                    EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.iOS, appSettings.configurations.platform);
+
+                                    break;
+                            }
 
                             DebugConsole.Log(LogLevel.Debug, "Switching to available supported platform.");
                         }
@@ -318,6 +371,8 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                             DebugConsole.Log(LogLevel.Warning, "Build target switch canceled. AR builder not created.");
                         }
                     }
+
+                    ApplyAppSettings(appSettings);
                 }
             }
 
@@ -339,6 +394,18 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             EditorGUILayout.EndHorizontal();
 
+            GUILayout.Space(10);
+
+            if (FindObjectOfType<ARSceneRoot>())
+            {
+                if (GUILayout.Button("Install and Run App", GUILayout.Height(45)))
+                {
+                    appSettings.configurations.buildLocation = EditorUtility.SaveFolderPanel("Choose Build Location", "", appSettings.configurations.platform.ToString());
+                    // BuildPlayerWindow.ShowBuildPlayerWindow();
+                    // appSettings.configurations.buildLocation = EditorUserBuildSettings.GetBuildLocation(appSettings.configurations.platform);
+                }
+            }
+
             EditorGUILayout.EndScrollView();
 
             GUILayout.EndVertical();
@@ -347,6 +414,70 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         }
 
         #region Root Builder Actions
+        /// <summary>
+        /// This method create build settings for the selected platform.
+        /// </summary>
+        /// <param name="buildSettings"></param>
+        private static void ApplyAppSettings(BuildSettings buildSettings)
+        {
+            PlayerSettings.companyName = (string.IsNullOrEmpty(buildSettings.appInfo.companyName)) ? PlayerSettings.companyName : buildSettings.appInfo.companyName;
+            PlayerSettings.productName = (string.IsNullOrEmpty(buildSettings.appInfo.appName)) ? PlayerSettings.productName : buildSettings.appInfo.appName;
+            PlayerSettings.bundleVersion = (string.IsNullOrEmpty(buildSettings.appInfo.appVersion)) ? PlayerSettings.bundleVersion : buildSettings.appInfo.appVersion;
+
+            switch (buildSettings.configurations.allowedOrientation)
+            {
+                case App.AR.Manager.DeviceOrientation.Portrait:
+
+                    PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
+
+                    break;
+
+                case App.AR.Manager.DeviceOrientation.PortraitUpSideDown:
+
+                    PlayerSettings.defaultInterfaceOrientation = UIOrientation.PortraitUpsideDown; ;
+
+                    break;
+
+                case App.AR.Manager.DeviceOrientation.LandscapeLeft:
+
+                    PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
+
+                    break;
+
+                case App.AR.Manager.DeviceOrientation.LandscapeRight:
+
+                    PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeRight;
+
+                    break;
+            }
+
+            if (buildSettings.appInfo.splashScreen != null)
+            {
+                PlayerSettings.SplashScreen.background = buildSettings.appInfo.splashScreen;
+                PlayerSettings.SplashScreen.backgroundColor = Color.black;
+            }
+
+            if (EditorUserBuildSettings.activeBuildTarget == BuildTarget.Android)
+            {
+                GraphicsDeviceType[] graphicsDeviceType = new GraphicsDeviceType[1];
+                graphicsDeviceType[0] = GraphicsDeviceType.OpenGLES3;
+                PlayerSettings.SetGraphicsAPIs(buildSettings.configurations.platform, graphicsDeviceType);
+
+                PlayerSettings.SetMobileMTRendering(BuildTargetGroup.Android, false);
+
+                PlayerSettings.Android.androidTVCompatibility = false;
+                PlayerSettings.Android.preferredInstallLocation = buildSettings.configurations.installLocation;
+                PlayerSettings.Android.ARCoreEnabled = true;
+
+                EditorUserBuildSettings.buildAppBundle = buildSettings.configurations.buildAppBundle;
+            }
+        
+            EditorUserBuildSettings.allowDebugging = buildSettings.configurations.allowDebugging;
+            EditorUserBuildSettings.development = buildSettings.configurations.developmentBuild;
+
+            EditorUserBuildSettings.SetBuildLocation(buildSettings.configurations.platform, buildSettings.configurations.buildLocation);
+
+        }
 
         /// <summary>
         /// This functions creates a new ar scene root.

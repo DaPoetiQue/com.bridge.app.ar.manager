@@ -83,7 +83,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         #region Settings
 
         private static BuildSettings appSettings;
-        private static bool buildAppBundle;
+        private static bool openBuildSettings;
         private static AndroidPreferredInstallLocation installLocation;
 
         private static bool addCustomSceneRootContent;
@@ -396,11 +396,24 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             if (FindObjectOfType<ARSceneRoot>())
             {
+                openBuildSettings = EditorGUILayout.Toggle("Open Build Settings", openBuildSettings);
+
                 if (GUILayout.Button("Install and Run App", GUILayout.Height(45)))
                 {
-                    appSettings.configurations.buildLocation = EditorUtility.SaveFolderPanel("Choose Build Location", "", appSettings.configurations.platform.ToString());
-                    // BuildPlayerWindow.ShowBuildPlayerWindow();
-                    // appSettings.configurations.buildLocation = EditorUserBuildSettings.GetBuildLocation(appSettings.configurations.platform);
+                    if(openBuildSettings)
+                    {
+                        BuildPlayerWindow.ShowBuildPlayerWindow();
+                    }
+                    
+                    if(string.IsNullOrEmpty(appSettings.configurations.buildLocation) == true)
+                    {
+                        appSettings.configurations.buildLocation = EditorUtility.SaveFolderPanel("Choose Build Location", "", appSettings.configurations.platform.ToString());
+                    }
+
+                    if(string.IsNullOrEmpty(appSettings.configurations.buildLocation) == false)
+                    {
+                        BuildApp(appSettings);
+                    }
                 }
             }
 
@@ -470,12 +483,52 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
                 EditorUserBuildSettings.buildAppBundle = buildSettings.androidSettings.buildAppBundle;
             }
-        
+
+           
+
+
             EditorUserBuildSettings.allowDebugging = buildSettings.configurations.allowDebugging;
             EditorUserBuildSettings.development = buildSettings.configurations.developmentBuild;
 
             EditorUserBuildSettings.SetBuildLocation(buildSettings.configurations.platform, buildSettings.configurations.buildLocation);
 
+        }
+
+        private static void BuildApp(BuildSettings buildSettings)
+        {
+            switch(buildSettings.configurations.platform)
+            {
+                case BuildTarget.Android:
+
+                    if(BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Android, BuildTarget.Android))
+                    {
+                        BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
+                        buildPlayerOptions.locationPathName = buildSettings.configurations.buildLocation;
+                        buildPlayerOptions.target = buildSettings.configurations.platform;
+                        buildPlayerOptions.targetGroup = BuildTargetGroup.Android;
+                        buildPlayerOptions.options = BuildOptions.AutoRunPlayer;
+
+                        BuildPipeline.BuildPlayer(buildPlayerOptions);
+                    }
+
+                    break;
+
+                case BuildTarget.iOS:
+
+
+                    if (BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.iOS, BuildTarget.iOS))
+                    {
+                        BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
+                        buildPlayerOptions.locationPathName = buildSettings.configurations.buildLocation;
+                        buildPlayerOptions.target = buildSettings.configurations.platform;
+                        buildPlayerOptions.targetGroup = BuildTargetGroup.iOS;
+                        buildPlayerOptions.options = BuildOptions.AutoRunPlayer;
+
+                        BuildPipeline.BuildPlayer(buildPlayerOptions);
+                    }
+
+                    break;
+            }
         }
 
         /// <summary>

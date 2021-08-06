@@ -193,18 +193,18 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         /// </summary>
         private void OnWindowUpdates()
         {
+            if (window == null)
+            {
+                window = GetWindow<ARSceneRootEditorWindow>();
+                DebugConsole.Log(LogLevel.Debug, "Window Refreshed.");
+            }
+
             DrawLayouts();
             OnEditorWindowUpdate();
         }
 
         private void DrawLayouts()
         {
-            if(window == null)
-            {
-                window = GetWindow<ARSceneRootEditorWindow>();
-                DebugConsole.Log(LogLevel.Debug, "Window Refreshed.");
-            }
-
             #region Header Section
 
             headerSectionRect.x = 0;
@@ -440,11 +440,33 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             PlayerSettings.productName = (string.IsNullOrEmpty(buildSettings.appInfo.appName)) ? PlayerSettings.productName : buildSettings.appInfo.appName;
             PlayerSettings.bundleVersion = (string.IsNullOrEmpty(buildSettings.appInfo.appVersion)) ? PlayerSettings.bundleVersion : buildSettings.appInfo.appVersion;
 
-            string companyName = buildSettings.appInfo.companyName.Replace("", "");
-            string productName = buildSettings.appInfo.appName.Replace("", "");
-            string identifier = $"com.{companyName}.{productName}";
+            DebugConsole.Log(LogLevel.Debug, $"Company Name : {buildSettings.appInfo.companyName} -- App Name : {buildSettings.appInfo.appName}");
 
-            PlayerSettings.applicationIdentifier = identifier;
+            if (string.IsNullOrEmpty(buildSettings.appInfo.companyName))
+            {
+                DebugConsole.Log(LogLevel.Warning, "App info's company name field is empty. Please assign company name in the <color=red>[AR Tool Kit Master]</color> inspector panel.");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(buildSettings.appInfo.appName))
+            {
+                DebugConsole.Log(LogLevel.Warning, "App info's app name field is empty. Please assign app name in the <color=red>[AR Tool Kit Master]</color> inspector panel.");
+                return;
+            }
+
+            if (buildSettings.appInfo.companyName.Contains(" "))
+            {
+                buildSettings.appInfo.companyName = buildSettings.appInfo.companyName.Replace(" ", "");
+
+            }
+
+            if (buildSettings.appInfo.appName.Contains(" "))
+            {
+                buildSettings.appInfo.appName = buildSettings.appInfo.appName.Replace(" ", "");
+            }
+
+            buildSettings.appInfo.appIdentifier = $"com.{buildSettings.appInfo.companyName}.{ buildSettings.appInfo.appName}";
+            PlayerSettings.applicationIdentifier = buildSettings.appInfo.appIdentifier;
 
             switch (buildSettings.configurations.allowedOrientation)
             {

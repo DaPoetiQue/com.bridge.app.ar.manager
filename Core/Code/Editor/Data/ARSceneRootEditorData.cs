@@ -55,6 +55,9 @@ namespace Bridge.Core.App.AR.Manager
 
         [Space(5)]
         public Sprite splashScreen;
+
+        [HideInInspector]
+        public string appIdentifier;
     }
 
     /// <summary>

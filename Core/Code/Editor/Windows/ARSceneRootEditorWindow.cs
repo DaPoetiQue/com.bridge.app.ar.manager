@@ -22,11 +22,10 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         [MenuItem("Window/3ridge/AR Content Manager %&a")]
         private static void OpenARManagerEditor()
         {
-            window = GetWindow<ARSceneRootEditorWindow>("AR Content Editor");
-            window.minSize = new Vector2(400, 300);
-            window.maxSize = new Vector2(500, 600);
-
-            window.Show();
+            var windowInstance = GetWindow<ARSceneRootEditorWindow>("AR Content Editor");
+            windowInstance.minSize = new Vector2(Screen.width/2, Screen.height/2);
+            windowInstance.maxSize = new Vector2(Screen.width, Screen.height);
+            windowInstance.Show();
         }
 
         #endregion
@@ -200,6 +199,12 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         private void DrawLayouts()
         {
+            if(window == null)
+            {
+                window = GetWindow<ARSceneRootEditorWindow>();
+                DebugConsole.Log(LogLevel.Debug, "Window Refreshed.");
+            }
+
             #region Header Section
 
             headerSectionRect.x = 0;
@@ -569,7 +574,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 throw exception;
             }
         }
-        private void OnRootBuilderUpdateAction(SceneRootBuilderData rootSettings, SceneRootBuilderData? content = null)
+        private void OnRootBuilderUpdateAction(SceneRootBuilderData rootSettings, SceneRootBuilderData content = null)
         {
             UnityEngine.Debug.Log("-->> Attempting To Update Root");
 
@@ -578,7 +583,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 UnityEngine.Debug.Log("-->> Root Updated");
             });
         }
-        private void OnRootBuilderRemoveAction(SceneRootBuilderData rootSettings, SceneRootBuilderData? content = null)
+        private void OnRootBuilderRemoveAction(SceneRootBuilderData rootSettings, SceneRootBuilderData content = null)
         {
             RemoveSceneRoot(removed =>
             {

@@ -7,6 +7,10 @@ using UnityEngine.XR.ARFoundation;
 using Bridge.Core.Debug;
 using UnityEngine.Rendering;
 using UnityEditor.Android;
+using System.Linq;
+using System.IO;
+using UnityEngine.SceneManagement;
+using UnityEditor.Build.Reporting;
 
 namespace Bridge.Core.UnityEditor.AR.Manager
 {
@@ -198,7 +202,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             if (window == null)
             {
                 appSettings.appInfo = GetBuildSettings().appInfo;
-                sceneRootObject.settings = GetARSceneSettings().settings;
 
                 window = GetWindow<ARSceneRootEditorWindow>();
                 DebugConsole.Log(LogLevel.Debug, $"Window Refreshed!.");
@@ -216,6 +219,12 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             headerSectionRect.y = 0;
             headerSectionRect.width = Screen.width;
             headerSectionRect.height = 100;
+
+            if(headerSectionTexture)
+            {
+                InitializeTextures();
+            }
+
             GUI.DrawTexture(headerSectionRect, headerSectionTexture);
 
             #endregion
@@ -257,8 +266,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         {
             GUILayout.BeginArea(settingsSectionRect);
 
-            GUILayout.BeginVertical();
-
+         
             GUIStyle style = new GUIStyle();
             style.padding = new RectOffset(10, 10, 25, 25);
 
@@ -266,9 +274,16 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             layout[0] = GUILayout.Width(settingsSectionRect.width);
             layout[1] = GUILayout.ExpandHeight(true);
 
-            GUILayout.ExpandHeight(true);
+            // GUILayout.ExpandHeight(true);
 
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, style ,layout);
+
+            EditorGUILayout.BeginVertical();
+
+            if (appSettings == null)
+            {
+                InitializeContentData();
+            }
 
             GUILayout.Space(10);
             SerializedObject appInfoSerializedObject = new SerializedObject(appSettings);
@@ -292,14 +307,18 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 androidConfigSerializedObject.ApplyModifiedProperties();
             }
 
+            EditorGUILayout.EndVertical();
+
             GUILayout.Space(10);
 
-            GUILayout.BeginHorizontal();
+            EditorGUILayout.BeginHorizontal();
 
             GUILayout.Label("Add Custom Root Content");
             addCustomSceneRootContent = EditorGUILayout.Toggle(addCustomSceneRootContent);
 
-            GUILayout.EndHorizontal();
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.BeginVertical();
 
             GUILayout.Space(10);
 
@@ -319,6 +338,8 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             sceneRootSerializedObject.ApplyModifiedProperties();
 
             GUILayout.Space(10);
+
+            EditorGUILayout.EndVertical();
 
             EditorGUILayout.BeginHorizontal();
 
@@ -429,8 +450,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             EditorGUILayout.EndScrollView();
 
-            GUILayout.EndVertical();
-
             GUILayout.EndArea();
         }
 
@@ -458,41 +477,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             #endregion
 
-            #region Platform Specific Settings
-
-            switch (EditorUserBuildSettings.activeBuildTarget)
-            {
-                case BuildTarget.Android:
-
-                    settings.androidSettings.SdkVersion = PlayerSettings.Android.minSdkVersion;
-                    settings.androidSettings.installLocation = PlayerSettings.Android.preferredInstallLocation;
-
-                    settings.androidSettings.buildAppBundle = EditorUserBuildSettings.buildAppBundle;
-
-                    break;
-
-                case BuildTarget.iOS:
-
-
-                    break;
-            }
-
-            #endregion
-
             return settings;
-        }
-
-        private static SceneRootObject GetARSceneSettings()
-        {
-            #region AR Scene Settings
-
-            var loadedSettings = sceneRootObject;
-            loadedSettings.settings.estimatedLighting = FindObjectOfType<ARCameraManager>().currentLightEstimation;
-            loadedSettings.settings.lightShadowType = FindObjectOfType<ARSceneRoot>().GetComponentInChildren<Light>().shadows;
-
-            return loadedSettings;
-
-            #endregion
         }
 
         /// <summary>
@@ -533,9 +518,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             }
 
             buildSettings.appInfo.appIdentifier = $"com.{companyName}.{appName}";
-
-            FindObjectOfType<ARSceneRoot>().GetComponentInChildren<Light>().shadows = sceneRootObject.settings.lightShadowType;
-            FindObjectOfType<ARSceneRoot>().GetComponentInChildren<ARCameraManager>().requestedLightEstimation = sceneRootObject.settings.estimatedLighting;
 
             switch (buildSettings.configurations.allowedOrientation)
             {
@@ -621,16 +603,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             {
                 case BuildTarget.Android:
 
-                    if(BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Android, BuildTarget.Android))
-                    {
-                        BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
-                        buildPlayerOptions.locationPathName = buildSettings.configurations.buildLocation;
-                        buildPlayerOptions.target = buildSettings.configurations.platform;
-                        buildPlayerOptions.targetGroup = BuildTargetGroup.Android;
-                        buildPlayerOptions.options = BuildOptions.AutoRunPlayer;
-
-                        BuildPipeline.BuildPlayer(buildPlayerOptions);
-                    }
+                    BuildAndroid(buildSettings);
 
                     break;
 
@@ -639,16 +612,45 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
                     if (BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.iOS, BuildTarget.iOS))
                     {
-                        BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
-                        buildPlayerOptions.locationPathName = buildSettings.configurations.buildLocation;
-                        buildPlayerOptions.target = buildSettings.configurations.platform;
-                        buildPlayerOptions.targetGroup = BuildTargetGroup.iOS;
-                        buildPlayerOptions.options = BuildOptions.AutoRunPlayer;
-
-                        BuildPipeline.BuildPlayer(buildPlayerOptions);
+                    
                     }
 
                     break;
+            }
+        }
+
+        private static void BuildAndroid(BuildSettings settings)
+        {
+            BuildPlayerOptions buildOptions = new BuildPlayerOptions();
+            buildOptions.scenes = new[] {SceneManager.GetActiveScene().path};
+            settings.configurations.buildLocation = EditorUtility.SaveFilePanel("Choose A Build Folder", Application.dataPath + "/../", "android", "apk");
+
+            if(string.IsNullOrEmpty(settings.configurations.buildLocation))
+            {
+                return;
+            }
+
+            if (File.Exists(settings.configurations.buildLocation))
+            {
+                File.Delete(settings.configurations.buildLocation);
+            }
+
+            buildOptions.locationPathName = settings.configurations.buildLocation;
+
+            buildOptions.target = BuildTarget.Android;
+            buildOptions.options = BuildOptions.AutoRunPlayer;
+
+            BuildReport report = BuildPipeline.BuildPlayer(buildOptions);
+            BuildSummary summary = report.summary;
+
+            if(summary.result == BuildResult.Succeeded)
+            {
+                DebugConsole.Log(LogLevel.Success, "App build completed successfully.");
+            }
+
+            if (summary.result == BuildResult.Failed)
+            {
+                DebugConsole.Log(LogLevel.Success, $"App build failed.");
             }
         }
 
@@ -711,6 +713,38 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             if (FindObjectOfType<ARSceneRoot>() == null) return;
 
             #region Load AR Scene Event Camera data
+
+            //if(storageDataInfo.isLoaded)
+            //{
+            //   // ARSceneRootEditor.SetPreviousEventCamSettings(LoadSceneObjectData());
+
+            //    //if (ARSceneRootEditor.GetPreviousEventCamSettings().useExistingCamera)
+            //    //{
+            //    //    Camera arCam = ARSceneRootEditor.arSceneEventCamera;
+            //    //    arCam.name = ARSceneRootEditor.GetPreviousEventCamSettings().nameTag;
+            //    //    arCam.clearFlags = ARSceneRootEditor.GetPreviousEventCamSettings().clearFlags;
+            //    //    arCam.cullingMask = ARSceneRootEditor.GetPreviousEventCamSettings().cullingMask;
+            //    //    arCam.backgroundColor = ARSceneRootEditor.GetPreviousEventCamSettings().backgroundColor;
+
+            //    //    arCam.fieldOfView = ARSceneRootEditor.GetPreviousEventCamSettings().fieldOfView;
+            //    //    arCam.nearClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().nearClipPlane;
+            //    //    arCam.farClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().farClipPlane;
+            //    //    StorageData.DirectoryInfoData directoryInfoData = new StorageData.DirectoryInfoData();
+            //    //    directoryInfoData.sceneAssetPath = LoadSceneObjectData().sceneAssetPath;
+
+            //    //    Storage.AssetData.LoadSceneAsset(directoryInfoData, (loadedParent, callBackResults) =>
+            //    //    {
+            //    //        arCam.transform.SetParent((Transform)loadedParent, false);
+            //    //    });
+
+            //    //    arCam.transform.localPosition = StorageData.SerializableData.Vector3(ARSceneRootEditor.GetPreviousEventCamSettings().serializablePosition);
+            //    //    arCam.transform.localRotation = StorageData.SerializableData.Quaternion(ARSceneRootEditor.GetPreviousEventCamSettings().serializableRotation);
+
+            //    //    if (arCam.gameObject.GetComponent<ARPoseDriver>()) DestroyImmediate(arCam.gameObject.GetComponent<ARPoseDriver>());
+            //    //    if (arCam.gameObject.GetComponent<ARCameraBackground>()) DestroyImmediate(arCam.gameObject.GetComponent<ARCameraBackground>());
+            //    //    if (arCam.gameObject.GetComponent<ARCameraManager>()) DestroyImmediate(arCam.gameObject.GetComponent<ARCameraManager>());
+            //    //}
+            //}
 
             #endregion
 

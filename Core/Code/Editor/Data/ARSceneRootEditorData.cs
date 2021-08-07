@@ -4,6 +4,7 @@ using Bridge.Core.App.Data.Storage;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEditor;
+using UnityEngine.SceneManagement;
 
 namespace Bridge.Core.App.AR.Manager
 {
@@ -61,6 +62,9 @@ namespace Bridge.Core.App.AR.Manager
     [Serializable]
     public struct BuildConfig
     {
+        [Space(5)]
+        public string scene;
+
         [Space(5)]
         public UIOrientation allowedOrientation;
 
@@ -356,21 +360,6 @@ namespace Bridge.Core.App.AR.Manager
                 serializableRotation = StorageData.SerializableData.GetQuaternion(sceneCameraData.rotation),
                 useExistingCamera = sceneCameraData.useExistingCamera,
             };
-
-            //Storage.Directory.GetAssetPath(sceneCameraData.parent, (directoryData, callBackResults) => 
-            //{
-            //    if(callBackResults.error)
-            //    {
-            //        UnityEngine.Debug.LogError(callBackResults.errorValue);
-            //    }
-
-            //    if(callBackResults.success)
-            //    {
-            //        cameraData.sceneAssetPath = directoryData.assetPath;
-            //        UnityEngine.Debug.Log(callBackResults.successValue);
-            //    }
-            //});
-
 
             return cameraData;
         }

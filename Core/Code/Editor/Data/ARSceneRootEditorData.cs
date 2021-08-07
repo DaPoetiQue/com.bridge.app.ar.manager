@@ -14,11 +14,6 @@ namespace Bridge.Core.App.AR.Manager
         Android, iOS
     }
 
-    public enum DeviceOrientation
-    {
-        LandscapeLeft, LandscapeRight, Portrait, PortraitUpSideDown
-    }
-
     /// <summary>
     /// This class contains the app build settings.
     /// </summary>
@@ -67,7 +62,7 @@ namespace Bridge.Core.App.AR.Manager
     public struct BuildConfig
     {
         [Space(5)]
-        public DeviceOrientation allowedOrientation;
+        public UIOrientation allowedOrientation;
 
         [Space(5)]
         public BuildTarget platform;
@@ -362,19 +357,19 @@ namespace Bridge.Core.App.AR.Manager
                 useExistingCamera = sceneCameraData.useExistingCamera,
             };
 
-            Storage.AssetData.GetSceneAssetPath(sceneCameraData.parent, (directoryData, callBackResults) => 
-            {
-                if(callBackResults.error)
-                {
-                    UnityEngine.Debug.LogError(callBackResults.errorValue);
-                }
+            //Storage.Directory.GetAssetPath(sceneCameraData.parent, (directoryData, callBackResults) => 
+            //{
+            //    if(callBackResults.error)
+            //    {
+            //        UnityEngine.Debug.LogError(callBackResults.errorValue);
+            //    }
 
-                if(callBackResults.success)
-                {
-                    cameraData.sceneAssetPath = directoryData.sceneAssetPath;
-                    UnityEngine.Debug.Log(callBackResults.successValue);
-                }
-            });
+            //    if(callBackResults.success)
+            //    {
+            //        cameraData.sceneAssetPath = directoryData.assetPath;
+            //        UnityEngine.Debug.Log(callBackResults.successValue);
+            //    }
+            //});
 
 
             return cameraData;

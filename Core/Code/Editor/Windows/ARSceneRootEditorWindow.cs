@@ -6,6 +6,7 @@ using Bridge.Core.App.Data.Storage;
 using UnityEngine.XR.ARFoundation;
 using Bridge.Core.Debug;
 using UnityEngine.Rendering;
+using UnityEditor.Android;
 
 namespace Bridge.Core.UnityEditor.AR.Manager
 {
@@ -90,10 +91,11 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         #region Storage Data
 
-        private static StorageData.DirectoryInfoData storageDataInfo = new StorageData.DirectoryInfoData() 
+        private static StorageData.DirectoryInfoData appInfoStorageData = new StorageData.DirectoryInfoData()
         { 
-            fileName = "ARSceenRootData", 
-            folderName = "3ridge App Data"
+            fileName = "artoolkit",
+            folderName = "Editor Data",
+            extensionType = StorageData.ExtensionType.json
         };
 
         #endregion
@@ -195,8 +197,11 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         {
             if (window == null)
             {
+                appSettings.appInfo = GetBuildSettings().appInfo;
+                sceneRootObject.settings = GetARSceneSettings().settings;
+
                 window = GetWindow<ARSceneRootEditorWindow>();
-                DebugConsole.Log(LogLevel.Debug, "Window Refreshed.");
+                DebugConsole.Log(LogLevel.Debug, $"Window Refreshed!.");
             }
 
             DrawLayouts();
@@ -430,18 +435,72 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         }
 
         #region Root Builder Actions
+
+        private static BuildSettings GetBuildSettings()
+        {
+            BuildSettings settings = appSettings;
+
+            #region App Info
+
+            settings.appInfo.companyName = PlayerSettings.companyName;
+            settings.appInfo.appName = PlayerSettings.productName;
+            settings.appInfo.appVersion = PlayerSettings.bundleVersion;
+            settings.appInfo.appIcon = PlayerSettings.GetIconsForTargetGroup(BuildTargetGroup.Unknown)[0];
+
+            #endregion
+
+            #region Configurations
+
+            settings.configurations.allowedOrientation = PlayerSettings.defaultInterfaceOrientation;
+            settings.configurations.platform = EditorUserBuildSettings.activeBuildTarget;
+            settings.configurations.allowDebugging = EditorUserBuildSettings.allowDebugging;
+            settings.configurations.developmentBuild = EditorUserBuildSettings.development;
+
+            #endregion
+
+            #region Platform Specific Settings
+
+            switch (EditorUserBuildSettings.activeBuildTarget)
+            {
+                case BuildTarget.Android:
+
+                    settings.androidSettings.SdkVersion = PlayerSettings.Android.minSdkVersion;
+                    settings.androidSettings.installLocation = PlayerSettings.Android.preferredInstallLocation;
+
+                    settings.androidSettings.buildAppBundle = EditorUserBuildSettings.buildAppBundle;
+
+                    break;
+
+                case BuildTarget.iOS:
+
+
+                    break;
+            }
+
+            #endregion
+
+            return settings;
+        }
+
+        private static SceneRootObject GetARSceneSettings()
+        {
+            #region AR Scene Settings
+
+            var loadedSettings = sceneRootObject;
+            loadedSettings.settings.estimatedLighting = FindObjectOfType<ARCameraManager>().currentLightEstimation;
+            loadedSettings.settings.lightShadowType = FindObjectOfType<ARSceneRoot>().GetComponentInChildren<Light>().shadows;
+
+            return loadedSettings;
+
+            #endregion
+        }
+
         /// <summary>
         /// This method create build settings for the selected platform.
         /// </summary>
         /// <param name="buildSettings"></param>
         private static void ApplyAppSettings(BuildSettings buildSettings)
         {
-            PlayerSettings.companyName = (string.IsNullOrEmpty(buildSettings.appInfo.companyName)) ? PlayerSettings.companyName : buildSettings.appInfo.companyName;
-            PlayerSettings.productName = (string.IsNullOrEmpty(buildSettings.appInfo.appName)) ? PlayerSettings.productName : buildSettings.appInfo.appName;
-            PlayerSettings.bundleVersion = (string.IsNullOrEmpty(buildSettings.appInfo.appVersion)) ? PlayerSettings.bundleVersion : buildSettings.appInfo.appVersion;
-
-            DebugConsole.Log(LogLevel.Debug, $"Company Name : {buildSettings.appInfo.companyName} -- App Name : {buildSettings.appInfo.appName}");
-
             if (string.IsNullOrEmpty(buildSettings.appInfo.companyName))
             {
                 DebugConsole.Log(LogLevel.Warning, "App info's company name field is empty. Please assign company name in the <color=red>[AR Tool Kit Master]</color> inspector panel.");
@@ -454,41 +513,57 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 return;
             }
 
-            if (buildSettings.appInfo.companyName.Contains(" "))
+            PlayerSettings.companyName = (string.IsNullOrEmpty(buildSettings.appInfo.companyName)) ? PlayerSettings.companyName : buildSettings.appInfo.companyName;
+            PlayerSettings.productName = (string.IsNullOrEmpty(buildSettings.appInfo.appName)) ? PlayerSettings.productName : buildSettings.appInfo.appName;
+            PlayerSettings.bundleVersion = (string.IsNullOrEmpty(buildSettings.appInfo.appVersion)) ? PlayerSettings.bundleVersion : buildSettings.appInfo.appVersion;
+
+            string companyName = buildSettings.appInfo.companyName;
+
+            if (companyName.Contains(" "))
             {
-                buildSettings.appInfo.companyName = buildSettings.appInfo.companyName.Replace(" ", "");
+                companyName = companyName.Replace(" ", "");
 
             }
 
-            if (buildSettings.appInfo.appName.Contains(" "))
+            string appName = buildSettings.appInfo.appName;
+
+            if (appName.Contains(" "))
             {
-                buildSettings.appInfo.appName = buildSettings.appInfo.appName.Replace(" ", "");
+                appName = appName.Replace(" ", "");
             }
 
-            buildSettings.appInfo.appIdentifier = $"com.{buildSettings.appInfo.companyName}.{ buildSettings.appInfo.appName}";
-            PlayerSettings.applicationIdentifier = buildSettings.appInfo.appIdentifier;
+            buildSettings.appInfo.appIdentifier = $"com.{companyName}.{appName}";
+
+            FindObjectOfType<ARSceneRoot>().GetComponentInChildren<Light>().shadows = sceneRootObject.settings.lightShadowType;
+            FindObjectOfType<ARSceneRoot>().GetComponentInChildren<ARCameraManager>().requestedLightEstimation = sceneRootObject.settings.estimatedLighting;
 
             switch (buildSettings.configurations.allowedOrientation)
             {
-                case App.AR.Manager.DeviceOrientation.Portrait:
+                case UIOrientation.AutoRotation:
+
+                    PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
+
+                    break;
+
+                case UIOrientation.Portrait:
 
                     PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
 
                     break;
 
-                case App.AR.Manager.DeviceOrientation.PortraitUpSideDown:
+                case UIOrientation.PortraitUpsideDown:
 
                     PlayerSettings.defaultInterfaceOrientation = UIOrientation.PortraitUpsideDown; ;
 
                     break;
 
-                case App.AR.Manager.DeviceOrientation.LandscapeLeft:
+                case UIOrientation.LandscapeLeft:
 
                     PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
 
                     break;
 
-                case App.AR.Manager.DeviceOrientation.LandscapeRight:
+                case UIOrientation.LandscapeRight:
 
                     PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeRight;
 
@@ -501,30 +576,43 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 PlayerSettings.SplashScreen.backgroundColor = Color.black;
             }
 
-            if (EditorUserBuildSettings.activeBuildTarget == BuildTarget.Android)
+            if (buildSettings.appInfo.appIcon != null)
             {
-                GraphicsDeviceType[] graphicsDeviceType = new GraphicsDeviceType[1];
-                graphicsDeviceType[0] = GraphicsDeviceType.OpenGLES3;
-                PlayerSettings.SetGraphicsAPIs(buildSettings.configurations.platform, graphicsDeviceType);
-
-                PlayerSettings.SetMobileMTRendering(BuildTargetGroup.Android, false);
-
-                PlayerSettings.Android.minSdkVersion = buildSettings.androidSettings.SdkVersion;
-                PlayerSettings.Android.androidTVCompatibility = false;
-                PlayerSettings.Android.preferredInstallLocation = buildSettings.androidSettings.installLocation;
-                PlayerSettings.Android.ARCoreEnabled = true;
-
-                EditorUserBuildSettings.buildAppBundle = buildSettings.androidSettings.buildAppBundle;
+                PlayerSettings.SetIconsForTargetGroup(BuildTargetGroup.Unknown, new Texture2D[] { buildSettings.appInfo.appIcon });
             }
 
-           
+            switch (EditorUserBuildSettings.activeBuildTarget)
+            {
+                case BuildTarget.Android:
 
+                    PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, buildSettings.appInfo.appIdentifier);
+
+                    GraphicsDeviceType[] graphicsDeviceType = new GraphicsDeviceType[1];
+                    graphicsDeviceType[0] = GraphicsDeviceType.OpenGLES3;
+                    PlayerSettings.SetGraphicsAPIs(buildSettings.configurations.platform, graphicsDeviceType);
+
+                    PlayerSettings.SetMobileMTRendering(BuildTargetGroup.Android, false);
+
+                    PlayerSettings.Android.minSdkVersion = buildSettings.androidSettings.SdkVersion;
+                    PlayerSettings.Android.androidTVCompatibility = false;
+                    PlayerSettings.Android.preferredInstallLocation = buildSettings.androidSettings.installLocation;
+                    PlayerSettings.Android.ARCoreEnabled = true;
+
+                    EditorUserBuildSettings.buildAppBundle = buildSettings.androidSettings.buildAppBundle;
+
+                    break;
+
+                case BuildTarget.iOS:
+
+                    PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.iOS, buildSettings.appInfo.appIdentifier);
+
+                    break;
+            }
 
             EditorUserBuildSettings.allowDebugging = buildSettings.configurations.allowDebugging;
             EditorUserBuildSettings.development = buildSettings.configurations.developmentBuild;
 
             EditorUserBuildSettings.SetBuildLocation(buildSettings.configurations.platform, buildSettings.configurations.buildLocation);
-
         }
 
         private static void BuildApp(BuildSettings buildSettings)
@@ -623,38 +711,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             if (FindObjectOfType<ARSceneRoot>() == null) return;
 
             #region Load AR Scene Event Camera data
-
-            if(storageDataInfo.isLoaded)
-            {
-               // ARSceneRootEditor.SetPreviousEventCamSettings(LoadSceneObjectData());
-
-                //if (ARSceneRootEditor.GetPreviousEventCamSettings().useExistingCamera)
-                //{
-                //    Camera arCam = ARSceneRootEditor.arSceneEventCamera;
-                //    arCam.name = ARSceneRootEditor.GetPreviousEventCamSettings().nameTag;
-                //    arCam.clearFlags = ARSceneRootEditor.GetPreviousEventCamSettings().clearFlags;
-                //    arCam.cullingMask = ARSceneRootEditor.GetPreviousEventCamSettings().cullingMask;
-                //    arCam.backgroundColor = ARSceneRootEditor.GetPreviousEventCamSettings().backgroundColor;
-
-                //    arCam.fieldOfView = ARSceneRootEditor.GetPreviousEventCamSettings().fieldOfView;
-                //    arCam.nearClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().nearClipPlane;
-                //    arCam.farClipPlane = ARSceneRootEditor.GetPreviousEventCamSettings().farClipPlane;
-                //    StorageData.DirectoryInfoData directoryInfoData = new StorageData.DirectoryInfoData();
-                //    directoryInfoData.sceneAssetPath = LoadSceneObjectData().sceneAssetPath;
-
-                //    Storage.AssetData.LoadSceneAsset(directoryInfoData, (loadedParent, callBackResults) =>
-                //    {
-                //        arCam.transform.SetParent((Transform)loadedParent, false);
-                //    });
-
-                //    arCam.transform.localPosition = StorageData.SerializableData.Vector3(ARSceneRootEditor.GetPreviousEventCamSettings().serializablePosition);
-                //    arCam.transform.localRotation = StorageData.SerializableData.Quaternion(ARSceneRootEditor.GetPreviousEventCamSettings().serializableRotation);
-
-                //    if (arCam.gameObject.GetComponent<ARPoseDriver>()) DestroyImmediate(arCam.gameObject.GetComponent<ARPoseDriver>());
-                //    if (arCam.gameObject.GetComponent<ARCameraBackground>()) DestroyImmediate(arCam.gameObject.GetComponent<ARCameraBackground>());
-                //    if (arCam.gameObject.GetComponent<ARCameraManager>()) DestroyImmediate(arCam.gameObject.GetComponent<ARCameraManager>());
-                //}
-            }
 
             #endregion
 

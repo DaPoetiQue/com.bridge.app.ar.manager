@@ -88,6 +88,8 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             arSceneLight.AddComponent<ARSceneLight>();
             arSceneLight.transform.SetParent(sessionOrigin.transform);
             Light sceneLight = arSceneLight.AddComponent<Light>();
+            sceneLight.type = LightType.Directional;
+            sceneLight.shadows = sceneRootObject.settings.lightShadowType;
             //sceneLight.shadowNearPlane = sceneEventCam.nearClipPlane;
             sceneLight.shadows = sceneRootObject.settings.lightShadowType;
 

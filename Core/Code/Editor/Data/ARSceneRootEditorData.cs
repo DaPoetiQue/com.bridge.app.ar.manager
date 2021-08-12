@@ -4,7 +4,6 @@ using Bridge.Core.App.Data.Storage;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEditor;
-using UnityEngine.SceneManagement;
 
 namespace Bridge.Core.App.AR.Manager
 {
@@ -221,21 +220,24 @@ namespace Bridge.Core.App.AR.Manager
     [Serializable]
     public struct SceneBuilderLightingSettings
     {
+        #region Focus Handler
+
+        [Space(5)]
+        [Header("Scene Tracking")]
+        [Space(5)]
+        public ARSceneFocusData sceneFocusData;
+
+        #endregion
+
         #region Lighting
 
+        [Space(5)]
         [Header("Scene Lighting")]
-        [Space(15)]
+        [Space(5)]
         public LightEstimation estimatedLighting;
 
         [Space(5)]
         public LightShadows lightShadowType;
-
-        #endregion
-
-        #region Focus Handler
-
-        [Space(5)]
-        public ARSceneFocusHandler focusHandler;
 
         #endregion
     }

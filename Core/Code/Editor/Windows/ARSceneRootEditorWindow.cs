@@ -1,16 +1,16 @@
 using System;
 using UnityEngine;
 using UnityEditor;
-using Bridge.Core.App.AR.Manager;
-using Bridge.Core.App.Data.Storage;
 using UnityEngine.XR.ARFoundation;
-using Bridge.Core.Debug;
 using UnityEngine.Rendering;
-using UnityEditor.Android;
-using System.Linq;
 using System.IO;
 using UnityEngine.SceneManagement;
 using UnityEditor.Build.Reporting;
+using UnityEngine.XR;
+using Bridge.Core.Debug;
+using Bridge.Core.UnityEditor.Debug;
+using Bridge.Core.App.AR.Manager;
+using Bridge.Core.App.Data.Storage;
 
 namespace Bridge.Core.UnityEditor.AR.Manager
 {
@@ -87,7 +87,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         #region Settings
 
         private static BuildSettings appSettings;
-        private static bool openBuildSettings;
+        private static bool RunAppOnCmpletion;
         private static AndroidPreferredInstallLocation installLocation;
 
         private static bool addCustomSceneRootContent;
@@ -188,6 +188,8 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             sceneRootObject = CreateInstance<SceneRootObject>();
             sceneRootObject.settings.estimatedLighting = LightEstimation.AmbientColor;
             sceneRootObject.settings.lightShadowType = LightShadows.Hard;
+
+            sceneRootObject.settings.sceneFocusData = CreateInstance<ARSceneFocusData>();
         }
 
         #endregion
@@ -423,27 +425,22 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             EditorGUILayout.EndHorizontal();
 
-            GUILayout.Space(10);
+            GUILayout.Space(15);
 
             if (FindObjectOfType<ARSceneRoot>())
             {
-                openBuildSettings = EditorGUILayout.Toggle("Open Build Settings", openBuildSettings);
-
-                if (GUILayout.Button("Install and Run App", GUILayout.Height(45)))
+                if (GUILayout.Button("Install & Launch App", GUILayout.Height(45)))
                 {
-                    if(openBuildSettings)
-                    {
-                        BuildPlayerWindow.ShowBuildPlayerWindow();
-                    }
-                    
-                    if(string.IsNullOrEmpty(appSettings.configurations.buildLocation) == true)
-                    {
-                        appSettings.configurations.buildLocation = EditorUtility.SaveFolderPanel("Choose Build Location", "", appSettings.configurations.platform.ToString());
-                    }
+                    BuildApp(appSettings, RunAppOnCmpletion);
+                }
 
-                    if(string.IsNullOrEmpty(appSettings.configurations.buildLocation) == false)
+                if(File.Exists(appSettings.configurations.buildLocation) == true)
+                {
+                    GUILayout.Space(10);
+
+                    if (GUILayout.Button("Open Build Folder", GUILayout.Height(45)))
                     {
-                        BuildApp(appSettings);
+                        OpenFileInExplorer(appSettings.configurations.buildLocation);
                     }
                 }
             }
@@ -486,6 +483,8 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         /// <param name="buildSettings"></param>
         private static void ApplyAppSettings(BuildSettings buildSettings)
         {
+            DebugConsole.Log(LogLevel.Debug, $"XR Loaded : {XRSettings.loadedDeviceName}");
+
             if (string.IsNullOrEmpty(buildSettings.appInfo.companyName))
             {
                 DebugConsole.Log(LogLevel.Warning, "App info's company name field is empty. Please assign company name in the <color=red>[AR Tool Kit Master]</color> inspector panel.");
@@ -497,6 +496,8 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 DebugConsole.Log(LogLevel.Warning, "App info's app name field is empty. Please assign app name in the <color=red>[AR Tool Kit Master]</color> inspector panel.");
                 return;
             }
+
+            
 
             PlayerSettings.companyName = (string.IsNullOrEmpty(buildSettings.appInfo.companyName)) ? PlayerSettings.companyName : buildSettings.appInfo.companyName;
             PlayerSettings.productName = (string.IsNullOrEmpty(buildSettings.appInfo.appName)) ? PlayerSettings.productName : buildSettings.appInfo.appName;
@@ -582,6 +583,8 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
                     EditorUserBuildSettings.buildAppBundle = buildSettings.androidSettings.buildAppBundle;
 
+                    DebugConsole.Log(LogLevel.Debug, $"{XRSettings.loadedDeviceName}");
+
                     break;
 
                 case BuildTarget.iOS:
@@ -597,13 +600,13 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             EditorUserBuildSettings.SetBuildLocation(buildSettings.configurations.platform, buildSettings.configurations.buildLocation);
         }
 
-        private static void BuildApp(BuildSettings buildSettings)
+        private static void BuildApp(BuildSettings buildSettings, bool runApp)
         {
             switch(buildSettings.configurations.platform)
             {
                 case BuildTarget.Android:
 
-                    BuildAndroid(buildSettings);
+                    BuildAndroid(buildSettings, runApp);
 
                     break;
 
@@ -619,11 +622,11 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             }
         }
 
-        private static void BuildAndroid(BuildSettings settings)
+        private static void BuildAndroid(BuildSettings settings, bool runApp)
         {
             BuildPlayerOptions buildOptions = new BuildPlayerOptions();
             buildOptions.scenes = new[] {SceneManager.GetActiveScene().path};
-            settings.configurations.buildLocation = EditorUtility.SaveFilePanel("Choose A Build Folder", Application.dataPath + "/../", "android", "apk");
+            settings.configurations.buildLocation = EditorUtility.SaveFilePanel("Choose A Build Folder", Application.dataPath + "/../", settings.appInfo.appName, "apk");
 
             if(string.IsNullOrEmpty(settings.configurations.buildLocation))
             {
@@ -638,13 +641,22 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             buildOptions.locationPathName = settings.configurations.buildLocation;
 
             buildOptions.target = BuildTarget.Android;
-            buildOptions.options = BuildOptions.AutoRunPlayer;
+
+            if(runApp)
+            {
+                buildOptions.options = BuildOptions.AutoRunPlayer;
+            }
+            else
+            {
+                buildOptions.options = BuildOptions.None;
+            }
 
             BuildReport report = BuildPipeline.BuildPlayer(buildOptions);
             BuildSummary summary = report.summary;
 
             if(summary.result == BuildResult.Succeeded)
             {
+                EditorWindow.FocusWindowIfItsOpen<ARSceneRootEditorWindow>();
                 DebugConsole.Log(LogLevel.Success, "App build completed successfully.");
             }
 
@@ -653,6 +665,11 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 DebugConsole.Log(LogLevel.Success, $"App build failed.");
             }
         }
+
+        private static void OpenFileInExplorer(string assetPat)
+        {
+            DebugConsole.Log(LogLevel.Debug, $"Path : {assetPat}");
+        }    
 
         /// <summary>
         /// This functions creates a new ar scene root.

@@ -1,10 +1,11 @@
 using System;
 using UnityEngine;
 using UnityEditor;
-using Bridge.Core.App.AR.Manager;
 using UnityEngine.XR.ARFoundation;
-using Bridge.Core.App.Events;
 using Bridge.Core.Debug;
+using Bridge.Core.UnityEditor.Debug;
+using Bridge.Core.App.AR.Manager;
+using Bridge.Core.App.Events;
 
 namespace Bridge.Core.UnityEditor.AR.Manager
 {
@@ -36,7 +37,8 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             #region Scene Objects
 
             GameObject arSceneRoot = new GameObject(sceneRootObject.content.nameTag);
-            arSceneRoot.AddComponent<ARSceneRoot>();
+            var focusData = arSceneRoot.AddComponent<ARSceneRoot>();
+            focusData.SceneFocusData = sceneRootObject.settings.sceneFocusData;
 
             if (Selection.gameObjects.Length > 0 && !Selection.gameObjects[0].GetComponent<Camera>())
             {
@@ -92,6 +94,17 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             sceneLight.shadows = sceneRootObject.settings.lightShadowType;
             //sceneLight.shadowNearPlane = sceneEventCam.nearClipPlane;
             sceneLight.shadows = sceneRootObject.settings.lightShadowType;
+
+            #endregion
+
+            #region Focus Data
+
+            if(sceneRootObject.settings.sceneFocusData != null)
+            {
+                GameObject scenefocusHandler = new GameObject("AR Scene Focus Handler");
+                scenefocusHandler.AddComponent<ARSceneFocusHandler>();
+                scenefocusHandler.transform.SetParent(sessionOrigin.transform);
+            }
 
             #endregion
 

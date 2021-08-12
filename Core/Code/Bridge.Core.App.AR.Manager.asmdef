@@ -3,9 +3,11 @@
     "rootNamespace": "Bridge.Core.App.AR.Manager",
     "references": [
         "GUID:5ef81270e65190e4babbe8d8e6e466c5",
+        "GUID:03609a11b5415cd4a97216d63394db02",
         "GUID:e716835e950357547805ba81a6fab883",
+        "GUID:3b0fa62fe7414834c9712d5ea4909a4b",
         "GUID:a9420e37d7990b54abdef6688edbe313",
-        "GUID:03609a11b5415cd4a97216d63394db02"
+        "GUID:92703082f92b41ba80f0d6912de66115"
     ],
     "includePlatforms": [
         "Android",

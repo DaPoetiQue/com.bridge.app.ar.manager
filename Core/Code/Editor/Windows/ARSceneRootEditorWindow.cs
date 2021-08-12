@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using UnityEditor;
-using UnityEngine.XR.ARFoundation;
 using UnityEngine.Rendering;
 using System.IO;
 using UnityEngine.SceneManagement;
@@ -28,8 +27,8 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         private static void OpenARManagerEditor()
         {
             var windowInstance = GetWindow<ARSceneRootEditorWindow>("AR Content Editor");
-            windowInstance.minSize = new Vector2(Screen.width/2, Screen.height/2);
-            windowInstance.maxSize = new Vector2(Screen.width, Screen.height);
+            windowInstance.minSize = new Vector2(350, 400);
+            windowInstance.maxSize = new Vector2(500, 600);
             windowInstance.Show();
         }
 
@@ -134,7 +133,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             #region Icon
 
-            iconTexture = Resources.Load<Texture2D>("Editor UI/Windows");
+            iconTexture = Resources.Load<Texture2D>("Editor/Windows");
 
             #endregion
 
@@ -186,7 +185,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             // This will be loaded from a json file called sceneSetup.json
             sceneRootObject = CreateInstance<SceneRootObject>();
-            sceneRootObject.settings.estimatedLighting = LightEstimation.AmbientColor;
+            // sceneRootObject.settings.estimatedLighting =;
             sceneRootObject.settings.lightShadowType = LightShadows.Hard;
 
             sceneRootObject.settings.sceneFocusData = CreateInstance<ARSceneFocusData>();

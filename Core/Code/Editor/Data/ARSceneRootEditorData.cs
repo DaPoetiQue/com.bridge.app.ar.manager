@@ -234,7 +234,7 @@ namespace Bridge.Core.App.AR.Manager
         [Space(5)]
         [Header("Scene Lighting")]
         [Space(5)]
-        public LightEstimation estimatedLighting;
+        public ARSceneLightEstimation estimatedLighting;
 
         [Space(5)]
         public LightShadows lightShadowType;

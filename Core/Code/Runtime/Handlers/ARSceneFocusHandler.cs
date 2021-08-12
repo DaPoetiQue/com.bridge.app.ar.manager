@@ -1,7 +1,6 @@
 using UnityEngine;
 using Bridge.Core.Debug;
 using System.Collections.Generic;
-using Bridge.Core.App.Content.Manager;
 
 namespace Bridge.Core.App.AR.Manager
 {
@@ -11,7 +10,6 @@ namespace Bridge.Core.App.AR.Manager
 
         [SerializeField]
         private List<FocusIcon> focusIcons = new List<FocusIcon>();
-        private int focusDataCount = 0;
 
         #endregion
 

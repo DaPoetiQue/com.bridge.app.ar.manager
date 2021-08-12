@@ -16,9 +16,6 @@ namespace Bridge.Core.App.AR.Manager
 
         [Space(5)]
         public float focusDistance;
-
-        [Space(3)]
-        public LayerMask arLayer;
     }
 
     [Serializable]

@@ -60,7 +60,9 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             planeManager.planePrefab = Resources.Load<GameObject>("AR Data/3ridge AR Scene Plane");
             arSessionOrigin.transform.SetParent(sceneRoot.transform);
 
-            CreateRootCamera(sessionOrigin.transform, sceneRootObject.content.createRootCamera, (camera, results) =>
+            ARCameraManager cameraManager = null;
+
+            CreateRootCamera(sessionOrigin.transform, sceneRootObject.content.createRootCamera, ref cameraManager, (camera, results) =>
             { 
                 if(results.error)
                 {
@@ -78,8 +80,10 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                     callBackResults.success = true;
                     callBackResults.successValue = results.successValue;
 
+                    cameraManager = camera.gameObject.GetComponent<ARCameraManager>();
+
                     DebugConsole.Log(LogLevel.Success, results.successValue);
-                }
+                }  
             });
 
             #endregion
@@ -87,9 +91,10 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             #region Scene Lighting
 
             GameObject arSceneLight = new GameObject("AR Scene Light");
-            arSceneLight.AddComponent<ARSceneLight>();
             arSceneLight.transform.SetParent(sessionOrigin.transform);
-            Light sceneLight = arSceneLight.AddComponent<Light>();
+            arSceneLight.transform.localRotation = Quaternion.Euler(75.0f, 45.0f, 0.0f);
+            var sceneLight = arSceneLight.AddComponent<Light>();
+            arSceneLight.AddComponent<ARSceneLightEstimation>().cameraManager = cameraManager;
             sceneLight.type = LightType.Directional;
             sceneLight.shadows = sceneRootObject.settings.lightShadowType;
             //sceneLight.shadowNearPlane = sceneEventCam.nearClipPlane;
@@ -117,7 +122,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         /// <param name="parent"></param>
         /// <param name="createCamera"></param>
         /// <param name="callBack"></param>
-        private static void CreateRootCamera(Transform parentObject, bool createCamera, Action<Camera, AppEventsData.CallBackResults> callBack = null)
+        private static void CreateRootCamera(Transform parentObject, bool createCamera, ref ARCameraManager cameraManager, Action<Camera, AppEventsData.CallBackResults> callBack = null)
         {
             try
             {

@@ -35,9 +35,7 @@ namespace Bridge.Core.App.AR.Manager
         public ARSceneFocusData sceneFocusData;
 
         private Camera sceneEventCamera = null;
-
         private ARRaycastManager rayCastManager;
-
         private ARSceneFocusHandler focusHandler = null;
 
         public ARSceneFocusData SceneFocusData
@@ -82,49 +80,39 @@ namespace Bridge.Core.App.AR.Manager
             rayCastManager = this.GetComponentInChildren<ARRaycastManager>();
         }
 
-        private void Tracking()
-        {
-            SceneTracked(screenCenter, (tracked, pose) =>
-            { 
-                if(tracked.success == true)
-                {
-                    focusHandler.Log(LogLevel.Debug, this, "Updating focus icons.");
-                    focusHandler.SetFocusIconPose(FocusType.Found, pose);
-
-                    Log(LogLevel.Debug, this, tracked.successValue);
-                }
-                else
-                {
-                    focusHandler.Log(LogLevel.Debug, this, "Seaching focus icons.");
-                    focusHandler.SetFocusIconPose(FocusType.None, pose);
-                }
-            });
-        }
-
         #endregion
 
         #region Main
 
-        private void SceneTracked(Vector3 point, Action<AppEventsData.CallBackResults, Content.Manager.Pose> callback = null)
+        private void Tracking()
         {
-            Ray ray = sceneEventCamera.ScreenPointToRay(point);
-
-            AppEventsData.CallBackResults callbackResults = new AppEventsData.CallBackResults();
-
-            if(rayCastManager.Raycast(ray, results, sceneFocusData.trackableType))
+            if(Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.IPhonePlayer)
             {
-                var pose = new Content.Manager.Pose { position = results[0].pose.position, rotation = results[0].pose.rotation };
+                var pose = new Content.Manager.Pose();
 
-                callbackResults.success = true;
-                callbackResults.successValue = "Scene tracking.";
-
-                callback.Invoke(callbackResults, pose);
+                if (SceneTracked(screenCenter, out pose))
+                {
+                    focusHandler.SetFocusIconPose(FocusType.Found, pose);
+                    Log(LogLevel.Debug, this, $"Pos : {pose.position} - Rot : {pose.rotation} - Scene Tracked");
+                }
+                else
+                {
+                    focusHandler.SetFocusIconPose(FocusType.Finding, pose);
+                    Log(LogLevel.Warning, this, $"Pos : {pose.position} - Rot : {pose.rotation} - Scene Tracking...");
+                }
             }
-            else
+        }
+
+        private bool SceneTracked(Vector3 screenCenter, out Content.Manager.Pose pose)
+        {
+            if (rayCastManager.Raycast(screenCenter, results, sceneFocusData.trackableType))
             {
-                callbackResults.error = true;
-                callbackResults.success = false;
+                pose = new Content.Manager.Pose { position = results[0].pose.position, rotation = results[0].pose.rotation };
+                return true;
             }
+
+            pose = new Content.Manager.Pose();
+            return false;
         }
 
         public Vector3 GetScreenCenter(float trackingDistance)

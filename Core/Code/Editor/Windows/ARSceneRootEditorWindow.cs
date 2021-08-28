@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 using UnityEditor.Build.Reporting;
 using UnityEngine.XR;
 using Bridge.Core.Debug;
-using Bridge.Core.UnityEditor.Debug;
+using Bridge.Core.UnityEditor.Debugger;
 using Bridge.Core.App.AR.Manager;
 using Bridge.Core.App.Data.Storage;
 
@@ -214,6 +214,11 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
         private void DrawLayouts()
         {
+            if(headerSectionTexture == null)
+            {
+                DebugConsole.Log(LogLevel.Warning, "Header Texture Missing");
+            }
+
             #region Header Section
 
             headerSectionRect.x = 0;
@@ -221,7 +226,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             headerSectionRect.width = Screen.width;
             headerSectionRect.height = 100;
 
-            if(headerSectionTexture)
+            if(headerSectionTexture == null)
             {
                 InitializeTextures();
             }
@@ -256,8 +261,6 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             settingsSectionContentRect.width = settingsSectionRect.width;
             settingsSectionContentRect.height = settingsSectionRect.height;
 
-            // settingsSectionContentRect
-
             GUI.DrawTexture(settingsSectionContentRect, settingsSectionContentTexture);
 
             #endregion
@@ -267,7 +270,15 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         {
             GUILayout.BeginArea(settingsSectionRect);
 
-         
+            #region Menu Content Area
+
+            #region Menu Content and Style Update
+
+            if (appSettings == null)
+            {
+                InitializeContentData();
+            }
+
             GUIStyle style = new GUIStyle();
             style.padding = new RectOffset(10, 10, 25, 25);
 
@@ -275,16 +286,13 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             layout[0] = GUILayout.Width(settingsSectionRect.width);
             layout[1] = GUILayout.ExpandHeight(true);
 
-            // GUILayout.ExpandHeight(true);
+            #endregion
 
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, style ,layout);
 
-            EditorGUILayout.BeginVertical();
+            #region Scroll Area
 
-            if (appSettings == null)
-            {
-                InitializeContentData();
-            }
+            #region App Info & Configurations
 
             GUILayout.Space(10);
             SerializedObject appInfoSerializedObject = new SerializedObject(appSettings);
@@ -298,38 +306,42 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             EditorGUILayout.PropertyField(appConfigSerializedObjectProperty, true);
             appConfigSerializedObject.ApplyModifiedProperties();
 
-            GUILayout.Space(10);
-
             if (appSettings.configurations.platform == BuildTarget.Android)
             {
+                GUILayout.Space(10);
+
                 SerializedObject androidConfigSerializedObject = new SerializedObject(appSettings);
                 SerializedProperty androidConfigSerializedObjectProperty = androidConfigSerializedObject.FindProperty("androidSettings");
                 EditorGUILayout.PropertyField(androidConfigSerializedObjectProperty, true);
                 androidConfigSerializedObject.ApplyModifiedProperties();
             }
 
-            EditorGUILayout.EndVertical();
+            #endregion
+
+            #region Custom Content
 
             GUILayout.Space(10);
 
-            EditorGUILayout.BeginHorizontal();
+            GUILayout.BeginHorizontal();
 
             GUILayout.Label("Add Custom Root Content");
             addCustomSceneRootContent = EditorGUILayout.Toggle(addCustomSceneRootContent);
 
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.BeginVertical();
-
-            GUILayout.Space(10);
+            GUILayout.EndHorizontal();
 
             if (addCustomSceneRootContent)
             {
+                GUILayout.Space(10);
+
                 SerializedObject arSceneContentSerializedObject = new SerializedObject(sceneRootObject);
                 SerializedProperty arSceneContentSerializedObjectProperty = arSceneContentSerializedObject.FindProperty("content");
                 EditorGUILayout.PropertyField(arSceneContentSerializedObjectProperty, true);
                 arSceneContentSerializedObject.ApplyModifiedProperties();
             }
+
+            #endregion
+
+            #region App Settings
 
             GUILayout.Space(10);
 
@@ -338,9 +350,11 @@ namespace Bridge.Core.UnityEditor.AR.Manager
             EditorGUILayout.PropertyField(sceneRootSerializedObjectProperty, true);
             sceneRootSerializedObject.ApplyModifiedProperties();
 
-            GUILayout.Space(10);
+            #endregion
 
-            EditorGUILayout.EndVertical();
+            #region Root Creation Buttons
+
+            GUILayout.Space(15);
 
             EditorGUILayout.BeginHorizontal();
 
@@ -412,10 +426,9 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 {
                     // OnRootBuilderUpdateAction(sceneRootObject.content, sceneRootObject.content);
                 }
-            }
 
-            if(FindObjectOfType<ARSceneRoot>())
-            {
+                GUILayout.Space(2);
+
                 if (GUILayout.Button("Remove Created Root", GUILayout.Height(45)))
                 {
                     OnRootBuilderRemoveAction(sceneRootObject.content, sceneRootObject.content);
@@ -424,7 +437,11 @@ namespace Bridge.Core.UnityEditor.AR.Manager
 
             EditorGUILayout.EndHorizontal();
 
-            GUILayout.Space(15);
+            #endregion
+
+            #region App Builder
+
+            GUILayout.Space(4);
 
             if (FindObjectOfType<ARSceneRoot>())
             {
@@ -444,7 +461,13 @@ namespace Bridge.Core.UnityEditor.AR.Manager
                 }
             }
 
+            #endregion
+
+            #endregion
+
             EditorGUILayout.EndScrollView();
+
+            #endregion
 
             GUILayout.EndArea();
         }

@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEditor;
 using UnityEngine.XR.ARFoundation;
 using Bridge.Core.Debug;
-using Bridge.Core.UnityEditor.Debug;
+using Bridge.Core.UnityEditor.Debugger;
 using Bridge.Core.App.AR.Manager;
 using Bridge.Core.App.Events;
 

@@ -24,7 +24,7 @@ namespace Bridge.Core.UnityEditor.AR.Manager
         #region Open Editor Window
 
         [MenuItem("Window/3ridge/AR Content Manager %&a")]
-        private static void OpenARManagerEditor()
+        public static void OpenARManagerEditor()
         {
             var windowInstance = GetWindow<ARSceneRootEditorWindow>("AR Content Editor");
             windowInstance.minSize = new Vector2(350, 400);

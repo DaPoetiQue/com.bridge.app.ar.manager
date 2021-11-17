@@ -90,7 +90,9 @@ namespace Bridge.Core.App.AR.Manager
             {
                 var pose = new Content.Manager.Pose();
 
-                if (SceneTracked(screenCenter, out pose))
+                SceneTracked(screenCenter, out pose);
+
+                if (pose.position != Vector3.zero)
                 {
                     focusHandler.SetFocusIconPose(FocusType.Found, pose);
                     Log(LogLevel.Debug, this, $"Pos : {pose.position} - Rot : {pose.rotation} - Scene Tracked");
@@ -103,16 +105,28 @@ namespace Bridge.Core.App.AR.Manager
             }
         }
 
-        private bool SceneTracked(Vector3 screenCenter, out Content.Manager.Pose pose)
+        private void SceneTracked(Vector3 screenCenter, out Content.Manager.Pose pose)
         {
             if (rayCastManager.Raycast(screenCenter, results, sceneFocusData.trackableType))
             {
-                pose = new Content.Manager.Pose { position = results[0].pose.position, rotation = results[0].pose.rotation };
-                return true;
-            }
+                if(results.Count <= 0)
+                {
+                    //return false;
+                }
 
-            pose = new Content.Manager.Pose();
-            return false;
+                Content.Manager.Pose newPose = new Content.Manager.Pose();
+
+                for (int i = 0; i < results.Count; i++)
+                {
+                    newPose = new Content.Manager.Pose { position = results[i].pose.position, rotation = results[i].pose.rotation };
+                }
+
+                pose = newPose;
+            }
+            else
+            {
+                pose = new Content.Manager.Pose();
+            }
         }
 
         public Vector3 GetScreenCenter(float trackingDistance)
